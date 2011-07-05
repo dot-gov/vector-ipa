@@ -14,6 +14,8 @@
 
 /* globals */
 
+static pthread_mutex_t send_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /* protos */
 
 void send_init(void);
@@ -129,6 +131,8 @@ int send_to_L2(struct packet_object *po)
       return 0;
    }
 
+   pthread_mutex_lock(&send_mutex);
+
    t = libnet_build_data(po->packet, po->len, GBL_LNET->lnet, 0);
    ON_ERROR(t, -1, "libnet_build_data: %s", libnet_geterror(GBL_LNET->lnet));
 
@@ -137,6 +141,8 @@ int send_to_L2(struct packet_object *po)
 
    /* clear the pblock */
    libnet_clear_packet(GBL_LNET->lnet);
+
+   pthread_mutex_unlock(&send_mutex);
 
    return c;
 }
@@ -154,6 +160,8 @@ int send_dns_reply(u_int16 dport, struct ip_addr *sip, struct ip_addr *tip, u_in
       DEBUG_MSG(D_ERROR, "send_dns_reply: lnet not initialized");
       return 0;
    }
+
+   pthread_mutex_lock(&send_mutex);
 
    /* create the dns packet */
     t = libnet_build_dnsv4(
@@ -212,6 +220,8 @@ int send_dns_reply(u_int16 dport, struct ip_addr *sip, struct ip_addr *tip, u_in
    /* clear the pblock */
    libnet_clear_packet(GBL_LNET->lnet_L3);
 
+   pthread_mutex_unlock(&send_mutex);
+
    return c;
 }
 
@@ -228,6 +238,8 @@ int send_tcp(struct ip_addr *sip, struct ip_addr *tip, u_int16 sport, u_int16 dp
       DEBUG_MSG(D_ERROR, "send_tcp: lnet not initialized");
       return 0;
    }
+
+   pthread_mutex_lock(&send_mutex);
 
     t = libnet_build_tcp(
         ntohs(sport),            /* source port */
@@ -274,6 +286,8 @@ int send_tcp(struct ip_addr *sip, struct ip_addr *tip, u_int16 sport, u_int16 dp
 
    /* clear the pblock */
    libnet_clear_packet(GBL_LNET->lnet_L3);
+
+   pthread_mutex_unlock(&send_mutex);
 
    return c;
 }
