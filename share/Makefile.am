@@ -6,7 +6,9 @@ sysconf_DATA = rcsredirect.conf \
 				redirect_url.txt \
 				redirect_user.txt \
 				redirect.html \
-				intercept_file.txt
+				intercept_file.txt \
+				cat.rules \
+				filter.rules
 
 EXTRA_DIST = rcsredirect.conf \
 			  	redirect_fqdn.txt \

@@ -58,16 +58,12 @@ mode="664"
       eend 0
    
       DAG_COMMAND="/usr/local/bin/dagconfig"
+      DAG_CAT="/usr/local/bin/dagcat-setup"
+      DAG_FILTER="/usr/local/bin/dagfilter-loader"
       DAG_VERSION=`/usr/local/bin/dagdetect -np 2> /dev/null`
       
       einfo "Searching for a supported Card"
-         if [ "$DAG_VERSION" == "DAG_4.3GE" ]; then
-            eend 0
-         elif [ "$DAG_VERSION" == "DAG_4.5G2" ]; then
-            eend 0
-         elif [ "$DAG_VERSION" == "DAG_4.5G4" ]; then
-            eend 0
-         elif [ "$DAG_VERSION" == "DAG_7.5G2" ]; then
+         if [ "$DAG_VERSION" == "DAG_7.5G2" ]; then
             eend 0 
          elif [ "$DAG_VERSION" == "DAG_7.5G4" ]; then
             eend 0
@@ -80,13 +76,13 @@ mode="664"
             eend 1 "Unsupported card ($DAG_VERSION)"
             return 1
          fi
+
+      einfo "Disabling load balancing on ($DAG_DEVICE)"
+        $DAG_COMMAND -d $DAG_DEVICE -S hash_encoding_from_ipf=off >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+        eend 0
       
       einfo "Configuring the capturing device ($DAG_VERSION)"
-      if [ "$DAG_VERSION" == "DAG_9.2X2" ]; then
-         $DAG_COMMAND -d $DAG_DEVICE $DAG9_OPTIONS >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
-      else
-         $DAG_COMMAND -d $DAG_DEVICE $DAG_OPTIONS >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
-      fi
+      $DAG_COMMAND -d $DAG_DEVICE $DAG_OPTIONS >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
       if [ $? == 0 ]; then
          eend 0
       else
@@ -94,6 +90,59 @@ mode="664"
          eend 1 "FATAL: unable to set capturing parameters"
          return 1
       fi
+
+      einfo "Configuring memory buffers on ($DAG_DEVICE)"
+         $DAG_COMMAND -d $DAG_DEVICE -S mem=$MEM_BUFFERS >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         if [ $? == 0 ]; then
+            eend 0
+         else
+            logger -f /tmp/endace_boot.log -p local7.info -t dag
+            eend 1 "FATAL: unable to configure memory buffers"
+            return 1
+         fi
+
+      einfo "Enabling load balancing on ($DAG_DEVICE)"
+         $DAG_COMMAND -d $DAG_DEVICE -S hash_encoding_from_ipf=on >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         eend 0
+
+      einfo "Balancing on source-destination IP"
+         $DAG_COMMAND -d $DAG_DEVICE -S n_tuple_select=$N_TUPLE >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         eend 0
+
+      einfo "Setting up bins for load balancing"
+         $DAG_COMMAND -d $DAG_DEVICE -S hat_range=$HAT_RANGE >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         eend 0
+
+      einfo "Setting up balancing for 8 cores"
+         $DAG_COMMAND -d $DAG_DEVICE -S hash_width=$HASH_WIDTH >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         eend 0
+
+      einfo "Loading configuration in CAT table on ($DAG_DEVICE)"
+         $DAG_CAT -d $DAG_DEVICE -f /rcsipa/etc/cat.rules >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         if [ $? == 0 ]; then
+            eend 0
+         else
+            logger -f /tmp/endace_boot.log -p local7.info -t dag
+            eend 1 "FATAL: unable to configure CAT table"
+            return 1
+         fi
+
+      einfo "Setting up filters on ($DAG_DEVICE)"
+         ACTIVE_BANK=`$DAG_COMMAND -d $DAG_DEVICE -G activate_bank | awk -F" = " '{ print $2 }' | tr -d '\n'`
+         if [ "$ACTIVE_BANK" == "on" ]; then
+            BANK=0
+         else
+            BANK=1
+         fi
+         einfo "Loading filters on bank $BANK"
+         $DAG_FILTER -d $DAG_DEVICE --db $BANK --initialize -f /rcsipa/etc/filter.rules >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         if [ $? == 0 ]; then
+            eend 0
+         else
+            logger -f /tmp/endace_boot.log -p local7.info -t dag
+            eend 1 "FATAL: unable to load filters"
+            return 1
+         fi
 
       einfo "Write the configuration to the log"
          logger -f /tmp/endace_boot.log -p local7.info -t dag
