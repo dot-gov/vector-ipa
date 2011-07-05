@@ -19,14 +19,13 @@
 
 /* globals */
 
-static SLIST_HEAD (, dec_entry) protocols_table;
-
-struct dec_entry {
-   u_int32 type;
-   u_int8 level;
+struct decoder_entry {
    FUNC_DECODER_PTR(decoder);
-   SLIST_ENTRY (dec_entry) next;
 };
+
+static struct decoder_entry il_protocols_table[0xff];
+static struct decoder_entry ll_protocols_table[0xffff];
+static struct decoder_entry nl_protocols_table[0xff];
 
 /* protos */
 
@@ -126,16 +125,22 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
  */
 void add_decoder(u_int8 level, u_int32 type, FUNC_DECODER_PTR(decoder))
 {
-   struct dec_entry *e;
-
-   SAFE_CALLOC(e, 1, sizeof(struct dec_entry));
-
-   e->level = level;
-   e->type = type;
-   e->decoder = decoder;
-
-   /* split into two list to be faster */
-   SLIST_INSERT_HEAD(&protocols_table, e, next);
+   /* use static arrays to speed up the access */
+   switch(level) {
+      case LINK_LAYER:
+         il_protocols_table[type].decoder = decoder;
+         break;
+      case NET_LAYER:
+         ll_protocols_table[type].decoder = decoder;
+         break;
+      case PROTO_LAYER:
+         nl_protocols_table[type].decoder = decoder;
+         break;
+      default:
+         printf("Unsupported decoder level.\n");
+         exit(1);
+         break;
+   }
 
    return;
 }
@@ -146,37 +151,24 @@ void add_decoder(u_int8 level, u_int32 type, FUNC_DECODER_PTR(decoder))
 
 void * get_decoder(u_int8 level, u_int32 type)
 {
-   struct dec_entry *e;
-   void *ret;
+   void *ret = NULL;
 
-   SLIST_FOREACH (e, &protocols_table, next) {
-      if (e->level == level && e->type == type) {
-         ret = (void *)e->decoder;
-         return ret;
-      }
+   /* with static array we have O(1) access instead of O(n) with lists */
+   switch(level) {
+      case LINK_LAYER:
+         ret = (void *)il_protocols_table[type].decoder;
+         break;
+      case NET_LAYER:
+         ret = (void *)ll_protocols_table[type].decoder;
+         break;
+      case PROTO_LAYER:
+         ret = (void *)nl_protocols_table[type].decoder;
+         break;
    }
 
-   return NULL;
+   return ret;
 }
 
-/*
- * remove a decoder from the decoders table
- */
-
-void del_decoder(u_int8 level, u_int32 type)
-{
-   struct dec_entry *e;
-
-   SLIST_FOREACH (e, &protocols_table, next) {
-      if (e->level == level && e->type == type) {
-         SLIST_REMOVE(&protocols_table, e, dec_entry, next);
-         SAFE_FREE(e);
-         return;
-      }
-   }
-
-   return;
-}
 
 /* EOF */
 

@@ -9,6 +9,7 @@
 #include <main.h>
 #include <packet.h>
 #include <send.h>
+#include <threads.h>
 
 #include <libnet.h>
 

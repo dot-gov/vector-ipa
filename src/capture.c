@@ -89,7 +89,7 @@ void capture_init(void)
    if (GBL_OPTIONS->read) {
       USER_MSG("Reading from %s...\n", GBL_OPTIONS->pcapfile_in);
    } else {
-      if (GBL_OPTIONS->Siface_chan)
+      if (GBL_OPTIONS->Siface_chan && iface_is_wireless(GBL_OPTIONS->Siface))
          USER_MSG("Listening on %s (channel %d)...\n", GBL_OPTIONS->Siface, GBL_OPTIONS->Siface_chan);
       else
          USER_MSG("Listening on %s...\n", GBL_OPTIONS->Siface);
