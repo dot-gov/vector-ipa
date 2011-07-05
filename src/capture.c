@@ -258,9 +258,14 @@ void capture_start(void)
     */
    if (strstr(GBL_OPTIONS->Siface, "dag")) {
       int i;
+      char name[32];
       for (i = 1; i < DAG_PARALLEL_CORES; i++) {
-         my_thread_new("hw_stream", "HW Balanced stream", &capture_hw_balanced_stream, &i);
+         snprintf(name, 32, "hw_hash_%02d", i*2);
+         my_thread_new(name, "HW balanced streamer", &capture_hw_balanced_stream, &i);
       }
+      
+      /* register my self as the first streamer */
+      my_thread_register(MY_PTHREAD_SELF, "hw_hash_00", "HW balanced streamer");
    }
 
    /*
