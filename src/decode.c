@@ -56,7 +56,7 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
 
    if (GBL_OPTIONS->read)
       /* update the offset pointer */
-      GBL_PCAP->dump_off = ftell(pcap_file(GBL_PCAP->pcap));
+      GBL_PCAP->dump_off = ftell(pcap_file(GBL_PCAP_FIRST));
 
    /* bad packet */
    if (pkthdr->caplen > UINT16_MAX) {
