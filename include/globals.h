@@ -9,6 +9,8 @@
 #include <encryption.h>
 #include <pcap/pcap.h>
 
+#define DAG_PARALLEL_CORES 8
+
 /* options form the config  */
 struct gbl_conf {
    char *file;
@@ -71,7 +73,7 @@ struct stats_env {
 
 /* pcap structure */
 struct pcap_env {
-   void     *pcap;         /* this is a pcap_t pointer */
+   void     *pcap[DAG_PARALLEL_CORES];         /* this is a pcap_t pointer */
    char     *filter;       /* pcap filter */
    u_int16  snaplen;
    int      dlt;
@@ -123,6 +125,7 @@ struct globals *gbls;
 #define GBL_UI             (GBLS->ui)
 #define GBL_ENV            (GBLS->env)
 #define GBL_PCAP           (GBLS->pcap)
+#define GBL_PCAP_FIRST     (GBL_PCAP->pcap[0])
 #define GBL_LNET           (GBLS->lnet)
 #define GBL_STATS          (GBLS->stats)
 #define GBL_NET            (GBLS->net)
