@@ -41,6 +41,7 @@ void capture_init(void);
 void capture_close(void);
 void capture_start(void);
 void capture_stop(void);
+MY_THREAD_FUNC(capture_hw_balanced_stream);
 
 void capture_getifs(void);
 int is_pcap_file(char *file, char *errbuf);
@@ -252,14 +253,48 @@ void capture_start(void)
    DEBUG_MSG(D_DEBUG, "capture_start");
 
    /*
-    * infinite loop
-    * dispatch packets to decode
+    * on DAG cards we have to spawn a thread for each HW balanced stream
+    * skip the first one, since it will be opened below
+    */
+   if (strstr(GBL_OPTIONS->Siface, "dag")) {
+      int i;
+      for (i = 1; i < DAG_PARALLEL_CORES; i++) {
+         my_thread_new("hw_stream", "HW Balanced stream", &capture_hw_balanced_stream, &i);
+      }
+   }
+
+   /*
+    * infinite loop, dispatch packets to decode
+    *
+    * this will work on both normal interfaces and as the first stream of DAG
     */
    ret = pcap_loop(GBL_PCAP_FIRST, -1, decode_captured, NULL);
    ON_ERROR(ret, -1, "Error while capturing: %s", pcap_geterr(GBL_PCAP_FIRST));
 
+   /* never reached */
    DEBUG_MSG(D_DEBUG, "capture_start: [%d] exited the infinite loop", ret);
 }
+
+
+MY_THREAD_FUNC(capture_hw_balanced_stream)
+{
+   int index = *(int *)MY_THREAD_PARAM;
+   int ret;
+
+   /* initialize the thread */
+   my_thread_init();
+
+   DEBUG_MSG(D_DEBUG, "capture_start: starting HW balanced stream %d", index);
+
+   /* infinite loop, dispatch packets to decode */
+   ret = pcap_loop(GBL_PCAP->pcap[index], -1, decode_captured, NULL);
+   ON_ERROR(ret, -1, "Error while capturing[%d]: %s", index, pcap_geterr(GBL_PCAP_FIRST));
+
+   /* never reached */
+   DEBUG_MSG(D_DEBUG, "capture_start[%d]: [%d] exited the infinite loop", index, ret);
+   return NULL;
+}
+
 
 void capture_stop(void)
 {
