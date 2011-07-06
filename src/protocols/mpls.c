@@ -14,7 +14,13 @@
 
 struct mpls_header
 {
-   u_int32  mpls;                    /* mpls header */
+   u_int32  shim;
+   /*
+    * 20 bit for the label
+    * 3 bit for priority
+    * 1 bit for stack bit (1 is the end of the stack, 0 is in the stack: other mpls headers)
+    * 8 bit for time to live
+    */
 };
 
 /* protos */
@@ -49,8 +55,14 @@ FUNC_DECODER(decode_mpls)
    /* HOOK POINT : HOOK_PACKET_mpls */
    hook_point(HOOK_PACKET_MPLS, po);
 
-   /* leave the control to the next decoder */
-   next_decoder = get_decoder(NET_LAYER, LL_TYPE_IP);
+   /* check the stack bit (9th bit) */
+   if (mpls->shim & 0x00000100) {
+      /* leave the control to the IP decoder */
+      next_decoder = get_decoder(NET_LAYER, LL_TYPE_IP);
+   } else {
+      /* leave the control to the another MPLS header */
+      next_decoder = get_decoder(NET_LAYER, LL_TYPE_MPLS);
+   }
 
    EXECUTE_DECODER(next_decoder);
 

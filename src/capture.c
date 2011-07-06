@@ -216,7 +216,7 @@ void capture_init(void)
    GBL_PCAP_FIRST = pd;
 
    /* if we are on DAG cards, we open all the HW balanced streams */
-   if (strstr(GBL_OPTIONS->Siface, "dag")) {
+   if (!GBL_OPTIONS->read && strstr(GBL_OPTIONS->Siface, "dag")) {
       int i;
       char iface[32];
       for (i = 1; i < DAG_PARALLEL_CORES; i++) {
@@ -256,14 +256,14 @@ void capture_start(void)
     * on DAG cards we have to spawn a thread for each HW balanced stream
     * skip the first one, since it will be opened below
     */
-   if (strstr(GBL_OPTIONS->Siface, "dag")) {
+   if (!GBL_OPTIONS->read && strstr(GBL_OPTIONS->Siface, "dag")) {
       int i;
       char name[32];
       for (i = 1; i < DAG_PARALLEL_CORES; i++) {
          snprintf(name, 32, "hw_hash_%02d", i*2);
          my_thread_new(name, "HW balanced streamer", &capture_hw_balanced_stream, &i);
       }
-      
+
       /* register my self as the first streamer */
       my_thread_register(MY_PTHREAD_SELF, "hw_hash_00", "HW balanced streamer");
    }
