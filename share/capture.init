@@ -82,7 +82,7 @@ mode="664"
         eend 0
       
       einfo "Configuring the capturing device ($DAG_VERSION)"
-      $DAG_COMMAND -d $DAG_DEVICE $DAG_OPTIONS >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+      $DAG_COMMAND -d $DAG_DEVICE $DAG_OPTIONS mem=$MEM_BUFFERS >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
       if [ $? == 0 ]; then
          eend 0
       else
@@ -90,16 +90,6 @@ mode="664"
          eend 1 "FATAL: unable to set capturing parameters"
          return 1
       fi
-
-      einfo "Configuring memory buffers on ($DAG_DEVICE)"
-         $DAG_COMMAND -d $DAG_DEVICE -S mem=$MEM_BUFFERS >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
-         if [ $? == 0 ]; then
-            eend 0
-         else
-            logger -f /tmp/endace_boot.log -p local7.info -t dag
-            eend 1 "FATAL: unable to configure memory buffers"
-            return 1
-         fi
 
       einfo "Enabling load balancing on ($DAG_DEVICE)"
          $DAG_COMMAND -d $DAG_DEVICE -S hash_encoding_from_ipf=on >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
