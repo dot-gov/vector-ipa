@@ -87,7 +87,6 @@ static void init_structures(void)
    set_pointer((struct conf_entry *)&common, "sniffing_iface", &GBL_CONF->sniffing_iface);
    set_pointer((struct conf_entry *)&common, "sniffing_iface_channel", &GBL_CONF->sniffing_iface_channel);
    set_pointer((struct conf_entry *)&common, "response_iface", &GBL_CONF->response_iface);
-   set_pointer((struct conf_entry *)&common, "http_listen", &GBL_CONF->http_listen);
    set_pointer((struct conf_entry *)&common, "pcap_filter", &GBL_PCAP->filter);
    set_pointer((struct conf_entry *)&targets, "user_timeout", &GBL_TARGETS->user_timeout);
    set_pointer((struct conf_entry *)&netconf, "rnc_sign_file", &GBL_NETCONF->rnc_sign_file);
