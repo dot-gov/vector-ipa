@@ -5,7 +5,7 @@
 #define __VERS_H
 
 #define RCS_VER            "2011070401"
-#define VERSION            "2011.07.04"
+#define VERSION            "2011.07.25"
 #define COPYRIGHT          "2011"
 #define AUTHORS            "HackingTeam srl"
 
