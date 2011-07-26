@@ -65,25 +65,31 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host)
    if (strstr(file, ".jad")) {
       content_type = "Content-Type: text/vnd.sun.j2me.app-descriptor\r\n";
       text_transfer = 1;
-   } else if (strstr(file, ".cod")){
+   } else if (strstr(file, ".cod")) {
       content_type = "Content-Type: application/vnd.rim.cod\r\n";
       text_transfer = 1;
-   } else if (strstr(file, ".html") || strstr(file, ".htm")){
+   } else if (strstr(file, ".html") || strstr(file, ".htm")) {
       content_type = "Content-Type: text/html\r\n";
       text_transfer = 1;
-   } else if (strstr(file, ".jnlp")){
+   } else if (strstr(file, ".jnlp")) {
       content_type = "Content-Type: application/x-java-jnlp-file\r\n";
       text_transfer = 1;
+   } else if (strstr(file, ".cer")) {
+	  content_type = "Content-Type: application/x-x509-ca-cert\r\n";
+	  text_transfer = 0;
+   } else if (strstr(file, ".jar")) {
+	  content_type = "Content-Type: application/java-archive\r\n";
+	  text_transfer = 0;
    } else {
       char mime_command[256];
       char output[128];
       char content[256];
-     
+      
       memset(content, 0, sizeof(content));
-
+	  
       /* get the mime type for the file */
       snprintf(mime_command, 256, "file -b --mime-type %s", path);
-
+	  
       FILE *p = popen(mime_command, "r");
       int r = fread(output, 1, sizeof(output), p);
       if (r > 0) {
