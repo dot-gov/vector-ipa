@@ -18,7 +18,6 @@
 /* global vars */
 
 static tn_t *fqdn_root;
-static pthread_mutex_t root_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct in_addr fqdn_reply;
 
@@ -42,9 +41,7 @@ int dnslist_find(const char* string, char *type)
 {
    int ret;
 
-   pthread_mutex_lock(&root_mutex);
    ret = tn_find(fqdn_root, string, type);
-   pthread_mutex_unlock(&root_mutex);
 
    return ret;
 }
@@ -223,10 +220,8 @@ int dnslist_load(tn_t* list)
 
 void fqdn_append(char *host)
 {
-   pthread_mutex_lock(&root_mutex);
-    /* insert fqdn into trie */
-    tn_populate(fqdn_root, host, FQDN);
-   pthread_mutex_unlock(&root_mutex);
+   /* insert fqdn into trie */
+   tn_populate(fqdn_root, host, FQDN);
 }
 
 void load_fqdn(void)
@@ -243,10 +238,8 @@ void load_fqdn(void)
    }
 
    /* save the new root */
-   pthread_mutex_lock(&root_mutex);
    tbf = fqdn_root;
    fqdn_root = tmp;
-   pthread_mutex_unlock(&root_mutex);
 
    /* free the old root */
    if (tbf)

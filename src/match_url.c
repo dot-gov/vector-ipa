@@ -18,7 +18,6 @@
 /* global vars */
 
 static LIST_HEAD(, url_node) url_root;
-static pthread_mutex_t root_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static u_char static_splash_page[SPLASH_PAGE_LEN];
 static size_t static_splash_page_len;
@@ -42,9 +41,7 @@ int urllist_find(const char* url, const char *tag)
 {
    int ret;
 
-   pthread_mutex_lock(&root_mutex);
    ret = list_find(url, tag);
-   pthread_mutex_unlock(&root_mutex);
 
    return ret;
 }
@@ -93,9 +90,7 @@ struct url_node *list_new(const char *value)
 
    snprintf(tmp->url, MAX_URL-1, "%s", p);
 
-   pthread_mutex_lock(&root_mutex);
    LIST_INSERT_HEAD(&url_root, tmp, next);
-   pthread_mutex_unlock(&root_mutex);
 
    return tmp;
 }
@@ -209,15 +204,11 @@ void load_url(void)
 {
    struct url_node *current, *tmp;
 
-   pthread_mutex_lock(&root_mutex);
-
    /* free the old list */
    LIST_FOREACH_SAFE(current, &url_root, next, tmp) {
        LIST_REMOVE(current, next);
        SAFE_FREE(current);
    }
-
-   pthread_mutex_unlock(&root_mutex);
 
    /* load the new URL list */
    urllist_load();
@@ -253,10 +244,6 @@ void match_url(struct packet_object *po)
    if (!strcmp(po->tag, ""))
       return;
 
-   /* prepare the buffers */
-   memset(host, 0, sizeof(host));
-   memset(page, 0, sizeof(host));
-
    tmp = (char *)po->DATA.data;
 
    /* intercept only the request from the client */
@@ -270,6 +257,10 @@ void match_url(struct packet_object *po)
    /* check if the the request includes Host: */
    if (!strcasestr(tmp, "Host: "))
       return;
+
+   /* prepare the buffers */
+   memset(host, 0, sizeof(host));
+   memset(page, 0, sizeof(page));
 
    /* Get the page from the request */
    strncpy(page, tmp, sizeof(page));

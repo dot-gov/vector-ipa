@@ -23,7 +23,6 @@ struct string_node {
 };
 
 static LIST_HEAD(, string_node) string_root;
-static pthread_mutex_t string_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* proto */
 
@@ -53,9 +52,7 @@ void match_user_string_add(char *value, char *tag, int type)
    snprintf(e->tag, MAX_TAG_LEN-1, "%s", tag);
    e->string = strdup(value);
 
-   pthread_mutex_lock(&string_mutex);
    LIST_INSERT_HEAD(&string_root, e, next);
-   pthread_mutex_unlock(&string_mutex);
 }
 
 
@@ -63,24 +60,18 @@ void match_user_string_clear(void)
 {
    struct string_node *e, *tmp;
 
-   pthread_mutex_lock(&string_mutex);
-
    /* remove all the elements */
    LIST_FOREACH_SAFE(e, &string_root, next, tmp) {
       SAFE_FREE(e->string);
       LIST_REMOVE(e, next);
       SAFE_FREE(e);
    }
-
-   pthread_mutex_unlock(&string_mutex);
 }
 
 
 struct string_node * user_string_search(const char *data, size_t len)
 {
    struct string_node *e;
-
-   pthread_mutex_lock(&string_mutex);
 
    LIST_FOREACH(e, &string_root, next) {
       /*
@@ -90,12 +81,9 @@ struct string_node * user_string_search(const char *data, size_t len)
        */
 
       if (memmem(data, len, e->string, strlen(e->string))) {
-         pthread_mutex_unlock(&string_mutex);
          return e;
       }
    }
-
-   pthread_mutex_unlock(&string_mutex);
 
    return NULL;
 }
