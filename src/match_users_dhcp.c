@@ -23,7 +23,6 @@ struct dhcp_node {
 };
 
 static LIST_HEAD(, dhcp_node) dhcp_root;
-static pthread_mutex_t dhcp_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* proto */
 
@@ -53,9 +52,7 @@ void match_user_dhcp_add(char *value, char *tag)
    snprintf(e->tag, MAX_TAG_LEN-1, "%s", tag);
    snprintf(e->mac, ETH_ASCII_ADDR_LEN-1, "%s", value);
 
-   pthread_mutex_lock(&dhcp_mutex);
    LIST_INSERT_HEAD(&dhcp_root, e, next);
-   pthread_mutex_unlock(&dhcp_mutex);
 }
 
 
@@ -63,15 +60,12 @@ void match_user_dhcp_clear(void)
 {
    struct dhcp_node *e, *tmp;
 
-   pthread_mutex_lock(&dhcp_mutex);
-
    /* remove all the elements */
    LIST_FOREACH_SAFE(e, &dhcp_root, next, tmp) {
       LIST_REMOVE(e, next);
       SAFE_FREE(e);
    }
 
-   pthread_mutex_unlock(&dhcp_mutex);
 }
 
 
@@ -79,17 +73,12 @@ struct dhcp_node * find_dhcp_user(char *mac)
 {
    struct dhcp_node *e;
 
-   pthread_mutex_lock(&dhcp_mutex);
-
    /* search into the list */
    LIST_FOREACH(e, &dhcp_root, next) {
       if (match_pattern(mac, e->mac)) {
-         pthread_mutex_unlock(&dhcp_mutex);
          return e;
       }
    }
-
-   pthread_mutex_unlock(&dhcp_mutex);
 
    return NULL;
 }

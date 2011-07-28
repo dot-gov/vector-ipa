@@ -281,8 +281,6 @@ void match_user_ip(struct packet_object *po)
    struct user_node *current;
    struct timeval tv;
 
-   pthread_mutex_lock(&root_mutex);
-
    /* search the target in the list */
    LIST_FOREACH(current, &users_root, next) {
       if (!ip_addr_cmp(&po->L3.src, &current->ip) || !ip_addr_cmp(&po->L3.dst, &current->ip)) {
@@ -301,12 +299,9 @@ void match_user_ip(struct packet_object *po)
 
          DEBUG_MSG(D_EXCESSIVE, "IP packet tagged with [%s] timeout [%d]", current->tag, current->end_time.tv_sec);
 
-         pthread_mutex_unlock(&root_mutex);
          return;
       }
    }
-
-   pthread_mutex_unlock(&root_mutex);
 }
 
 
@@ -317,8 +312,6 @@ void match_user_mac(struct packet_object *po)
    u_char zero_mac[MEDIA_ADDR_LEN];
 
    memset(zero_mac, 0, MEDIA_ADDR_LEN);
-
-   pthread_mutex_lock(&root_mutex);
 
    /* search the target in the list */
    LIST_FOREACH(current, &users_root, next) {
@@ -343,12 +336,9 @@ void match_user_mac(struct packet_object *po)
 
          DEBUG_MSG(D_EXCESSIVE, "LINK LAYER packet tagged with [%s] timeout [%d]", current->tag, current->end_time.tv_sec);
 
-         pthread_mutex_unlock(&root_mutex);
          return;
       }
    }
-
-   pthread_mutex_unlock(&root_mutex);
 }
 
 void match_users_init(void)
