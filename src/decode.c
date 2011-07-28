@@ -78,10 +78,8 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
          return;
       }
 
-      /* alloc the packet object structure to be passed through decoders */
-      packet_create_object(&po, data, datalen);
-      /* set the po timestamp */
-      memcpy(&po.ts, &pkthdr->ts, sizeof(struct timeval));
+      /* initialize the packet object structure to be passed through decoders */
+      packet_create_object(&po, data, datalen, &pkthdr->ts);
 #if 0
       /* HOOK POINT: RECEIVED */
       hook_point(HOOK_RECEIVED, &po);
