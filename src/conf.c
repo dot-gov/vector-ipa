@@ -22,7 +22,6 @@ static struct conf_entry common[] = {
    { "sniffing_iface_channel", NULL },
    { "response_iface", NULL },
    { "pcap_filter", NULL },
-   { "http_listen", NULL },
    { NULL, NULL },
 };
 

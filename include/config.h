@@ -5,7 +5,7 @@
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
 /* debug support */
-/* #undef DEBUG */
+#define DEBUG 1
 
 /* gcc version */
 #define GCC_VERSION "4.5.2"
@@ -178,22 +178,22 @@
 #define HAVE_VSNPRINTF 1
 
 /* where can I find the executable ? */
-#define INSTALL_BINDIR "/rcsipa/bin"
+#define INSTALL_BINDIR "/usr/local/bin"
 
 /* where can I find my data file ? */
 #define INSTALL_DATADIR "${prefix}/share"
 
 /* the exec_prefix passed by configure */
-#define INSTALL_EXECPREFIX "/rcsipa"
+#define INSTALL_EXECPREFIX "/usr/local"
 
 /* where can I find my plugins ? */
-#define INSTALL_LIBDIR "/rcsipa/lib"
+#define INSTALL_LIBDIR "/usr/local/lib"
 
 /* the prefix passed by configure */
-#define INSTALL_PREFIX "/rcsipa"
+#define INSTALL_PREFIX "/usr/local"
 
 /* where can I find my sysconf file ? */
-#define INSTALL_SYSCONFDIR "/rcsipa/etc"
+#define INSTALL_SYSCONFDIR "/usr/local/etc"
 
 /* compiling under linux */
 #define OS_LINUX 1
