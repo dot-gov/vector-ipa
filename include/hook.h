@@ -11,7 +11,7 @@ void hook_point(int point, struct packet_object *po);
    #define HOOK_DECODED       1     /* all the packet after the protocol stack parsing */
 
    /* these are used the hook received packets */
-   #define HOOK_PACKET_BASE      50
+   #define HOOK_PACKET_BASE      10
    #define HOOK_PACKET_ETH       (HOOK_PACKET_BASE + 1)
    #define HOOK_PACKET_FDDI      (HOOK_PACKET_BASE + 2)
    #define HOOK_PACKET_TR        (HOOK_PACKET_BASE + 3)
@@ -34,15 +34,15 @@ void hook_point(int point, struct packet_object *po);
    #define HOOK_PACKET_PPPOE     (HOOK_PACKET_BASE + 20)
    #define HOOK_PACKET_ERF       (HOOK_PACKET_BASE + 21)
 
-   /* high level protocol hooks */
-   #define HOOK_PROTO_BASE          100
-   #define HOOK_PROTO_SMB           (HOOK_PROTO_BASE + 1)
-   #define HOOK_PROTO_SMB_CHL       (HOOK_PROTO_BASE + 2)
-   #define HOOK_PROTO_DHCP_REQUEST  (HOOK_PROTO_BASE + 3)
-   #define HOOK_PROTO_DHCP_DISCOVER (HOOK_PROTO_BASE + 4)
-   #define HOOK_PROTO_DHCP_PROFILE  (HOOK_PROTO_BASE + 5)
-   #define HOOK_PROTO_DNS           (HOOK_PROTO_BASE + 6)
-   #define HOOK_PROTO_HTTP          (HOOK_PROTO_BASE + 7)
+   #define HOOK_PROTO_DHCP_REQUEST  (HOOK_PACKET_BASE + 30)
+   #define HOOK_PROTO_DHCP_DISCOVER (HOOK_PACKET_BASE + 31)
+   #define HOOK_PROTO_DHCP_PROFILE  (HOOK_PACKET_BASE + 32)
+   #define HOOK_PROTO_DNS           (HOOK_PACKET_BASE + 33)
+   #define HOOK_PROTO_HTTP          (HOOK_PACKET_BASE + 34)
+
+   /* this should be higher than any other value */
+   #define HOOK_PACKET_MAX      50
+
 
 void hook_add(int point, void (*func)(struct packet_object *po) );
 int hook_del(int point, void (*func)(struct packet_object *po) );
