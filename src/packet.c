@@ -13,7 +13,7 @@
 
 /* protos... */
 
-inline int packet_create_object(struct packet_object *po, u_char *buf, size_t len, struct timeval *ts);
+inline int packet_create_object(struct packet_object *po, u_char *buf, size_t len, const struct timeval *ts);
 inline int packet_destroy_object(struct packet_object *po);
 struct packet_object * packet_dup(struct packet_object *po, u_char flag);
 
@@ -23,7 +23,7 @@ struct packet_object * packet_dup(struct packet_object *po, u_char flag);
  * associate the buffer to the packet object
  */
 
-inline int packet_create_object(struct packet_object *po, u_char *buf, size_t len, struct timeval *ts)
+inline int packet_create_object(struct packet_object *po, u_char *buf, size_t len, const struct timeval *ts)
 {
    /* clear the memory */
    memset(po, 0, sizeof(struct packet_object));
@@ -33,7 +33,7 @@ inline int packet_create_object(struct packet_object *po, u_char *buf, size_t le
    po->len = len;
 
    /* set the po timestamp */
-   memcpy(po->ts, ts, sizeof(struct timeval));
+   memcpy((void *)&po->ts, (void *)ts, sizeof(struct timeval));
 
    return (0);
 }
