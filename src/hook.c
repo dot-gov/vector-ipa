@@ -25,7 +25,7 @@ static LIST_HEAD(, hook_list) hook_list_head[HOOK_PACKET_MAX];
 pthread_rwlock_t hook_lock;
 
 /* protos... */
-
+void __init hook_init(void);
 void hook_point(int point, struct packet_object *po);
 void hook_add(int point, void (*func)(struct packet_object *po) );
 int hook_del(int point, void (*func)(struct packet_object *po) );
@@ -34,7 +34,7 @@ int hook_del(int point, void (*func)(struct packet_object *po) );
 
 void __init hook_init(void)
 {
-   pthread_rwlock_init(&hook_lock);
+   pthread_rwlock_init(&hook_lock, NULL);
 }
 
 /* execute the functions registered in that hook point */

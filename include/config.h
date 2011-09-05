@@ -5,10 +5,10 @@
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
 /* debug support */
-#define DEBUG 1
+/* #undef DEBUG */
 
 /* gcc version */
-#define GCC_VERSION "4.5.2"
+#define GCC_VERSION "4.5.3"
 
 /* Define to 1 if you have the `basename' function. */
 #define HAVE_BASENAME 1
@@ -178,22 +178,22 @@
 #define HAVE_VSNPRINTF 1
 
 /* where can I find the executable ? */
-#define INSTALL_BINDIR "/usr/local/bin"
+#define INSTALL_BINDIR "/rcsipa/bin"
 
 /* where can I find my data file ? */
 #define INSTALL_DATADIR "${prefix}/share"
 
 /* the exec_prefix passed by configure */
-#define INSTALL_EXECPREFIX "/usr/local"
+#define INSTALL_EXECPREFIX "/rcsipa"
 
 /* where can I find my plugins ? */
-#define INSTALL_LIBDIR "/usr/local/lib"
+#define INSTALL_LIBDIR "/rcsipa/lib"
 
 /* the prefix passed by configure */
-#define INSTALL_PREFIX "/usr/local"
+#define INSTALL_PREFIX "/rcsipa"
 
 /* where can I find my sysconf file ? */
-#define INSTALL_SYSCONFDIR "/usr/local/etc"
+#define INSTALL_SYSCONFDIR "/rcsipa/etc"
 
 /* compiling under linux */
 #define OS_LINUX 1
@@ -235,7 +235,7 @@
 /* #undef TM_IN_SYS_TIME */
 
 /* Version number of package */
-#define VERSION "2011.07.25"
+#define VERSION "2011.09.12"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
