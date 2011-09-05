@@ -183,7 +183,7 @@ BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host)
    bio = BIO_new(BIO_f_inject());
 
    /* set the search string and the injection buffer */
-   bis.search = "<body>";
+   bis.search = "<head>";
    bis.inject = html_to_inject;
    bis.inject_len = html_to_inject_len;
 
