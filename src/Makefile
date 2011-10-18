@@ -116,7 +116,7 @@ AUTOCONF = ${SHELL} /root/devel/vector-ipa/missing --run autoconf
 AUTOHEADER = ${SHELL} /root/devel/vector-ipa/missing --run autoheader
 AUTOMAKE = ${SHELL} /root/devel/vector-ipa/missing --run automake-1.11
 AWK = gawk
-BUILD_CFLAGS = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -O2 -funroll-loops -fomit-frame-pointer -Wall -I/usr/include/pcap   -I../../RCSStreamingMelter/include
+BUILD_CFLAGS = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -g -ggdb -Wmissing-prototypes -Wno-uninitialized -Werror -Wformat-security -Wsign-compare -Wall -I/usr/include/pcap   -I../../RCSStreamingMelter/include
 BUILD_LIBS = -lpcap -lresolv -lpthread  -nopie -lpcap -lnet -lssl -lcrypto
 CC = gcc
 CCDEPMODE = depmode=gcc3
@@ -186,7 +186,7 @@ datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
-exec_prefix = /rcsipa
+exec_prefix = /usr/local
 host = i686-pc-linux-gnu
 host_alias = 
 host_cpu = i686
@@ -204,7 +204,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /rcsipa
+prefix = /usr/local
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin
@@ -233,7 +233,7 @@ RCSRedirect_SOURCES = bio_injector.c bio_replacer.c capture.c \
 	protocols/vlan.c protocols/udp.c protocols/wifi.c \
 	protocols/wifi_eapol.c protocols/wifi_prism.c \
 	protocols/wifi_radiotap.c missing/strlcpy.c
-RCSRedirect_CFLAGS = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -O2 -funroll-loops -fomit-frame-pointer -Wall -I/usr/include/pcap   -I../../RCSStreamingMelter/include
+RCSRedirect_CFLAGS = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -g -ggdb -Wmissing-prototypes -Wno-uninitialized -Werror -Wformat-security -Wsign-compare -Wall -I/usr/include/pcap   -I../../RCSStreamingMelter/include
 RCSRedirect_LDADD = -L../../RCSStreamingMelter/lib -lmelt -lstdc++ -L../../RCSStreamingMelter/deps/beaengine/lib -lBeaEngine_s -L../../RCSStreamingMelter/deps/asmjit/lib -lAsmJit -lboost_filesystem-mt -lboost_regex-mt -lboost_program_options-mt -lboost_system-mt  
 RCSRedirect_LDFLAGS = -lpcap -lresolv -lpthread  -nopie -lpcap -lnet -lssl -lcrypto 
 CLEANFILES = *.log *.out core* missing/*.o *~

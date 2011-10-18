@@ -61,7 +61,7 @@ AUTOCONF = ${SHELL} /root/devel/vector-ipa/missing --run autoconf
 AUTOHEADER = ${SHELL} /root/devel/vector-ipa/missing --run autoheader
 AUTOMAKE = ${SHELL} /root/devel/vector-ipa/missing --run automake-1.11
 AWK = gawk
-BUILD_CFLAGS = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -O2 -funroll-loops -fomit-frame-pointer -Wall -I/usr/include/pcap   -I../../RCSStreamingMelter/include
+BUILD_CFLAGS = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -g -ggdb -Wmissing-prototypes -Wno-uninitialized -Werror -Wformat-security -Wsign-compare -Wall -I/usr/include/pcap   -I../../RCSStreamingMelter/include
 BUILD_LIBS = -lpcap -lresolv -lpthread  -nopie -lpcap -lnet -lssl -lcrypto
 CC = gcc
 CCDEPMODE = depmode=gcc3
@@ -131,7 +131,7 @@ datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
-exec_prefix = /rcsipa
+exec_prefix = /usr/local
 host = i686-pc-linux-gnu
 host_alias = 
 host_cpu = i686
@@ -149,7 +149,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /rcsipa
+prefix = /usr/local
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin

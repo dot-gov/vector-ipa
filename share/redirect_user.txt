@@ -27,4 +27,5 @@ DHCP 00:23:54:9E:EE:86 test_replace
 #STRING-CLIENT alberto.ornaghi targ004
 #STRING-SERVER alberto.ornaghi targ004
 #STRING-CLIENT mozilla alor
-STRING-CLIENT Host test_redirect_tag
+#STRING-CLIENT Host test_redirect_tag
+PPP-PAP cisco test_redirect_tag

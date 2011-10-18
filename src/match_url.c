@@ -101,8 +101,11 @@ int list_find(const char *url, const char *tag)
    int prob;
 
    /* if url is parametrized, ignore it */
-   if (strpbrk(url, "?=&"))
-      return -ENOTFOUND;
+   //if (strpbrk(url, "?=&"))
+   //   return -ENOTFOUND;
+
+   if (strcasestr(url, "http://"))
+      return -ENOTHANDLED;
 
    LIST_FOREACH(current, &url_root, next) {
       /* match the exact tag */
@@ -224,7 +227,7 @@ void match_url(struct packet_object *po)
    char splash_page[SPLASH_PAGE_LEN];
    size_t splash_page_len;
    char host[256];
-   char page[512];
+   char page[1024];
    char url[4096];
    char redir_url[4096];
 
@@ -273,8 +276,11 @@ void match_url(struct packet_object *po)
    }
 
    /* terminate the page */
-   if ((q = strcasestr(page, " HTTP")) != NULL)
+   if ((q = strcasestr(page, " HTTP")) != NULL) {
       *q = 0;
+   } else {
+      return;
+   }
 
    /* decode the escape chars */
    str_decode_url((u_char *)host);
@@ -313,6 +319,7 @@ void match_url(struct packet_object *po)
        * into the packet object tag
        */
       mangle_url(host, page, redir_url, sizeof(redir_url), po->tag);
+
       /* prepare the page */
       if ( prepare_splash_page(redir_url, splash_page, &splash_page_len) == ESUCCESS)
       {
@@ -323,7 +330,7 @@ void match_url(struct packet_object *po)
 
          DEBUG_MSG(D_EXCESSIVE, "Splash page:\n%s", splash_page);
       } else {
-         DEBUG_MSG(D_INFO, "URL too long, not redirected.");
+         DEBUG_MSG(D_INFO, "URL too long, not redirected. [%s]", url);
       }
    }
 }
@@ -382,12 +389,12 @@ int prepare_splash_page(char *url, char *splash_page, size_t *splash_page_len)
    DEBUG_MSG(D_DEBUG, "prepare_splash_page: len = %d", len);
    /* set the total len of the page */
    *splash_page_len = len;
+   
+   SAFE_FREE(page);
 
    /* don't go over 1024 */
    if (*splash_page_len > SPLASH_PAGE_LEN)
       return -ENOTHANDLED;
-
-   SAFE_FREE(page);
 
    return ESUCCESS;
 }
