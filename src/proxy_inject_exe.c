@@ -79,7 +79,7 @@ int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file)
       return -ENOADDRESS;
    }
 
-   DEBUG_MSG(D_INFO, "Connection to [%s]", host);
+   DEBUG_MSG(D_INFO, "Connection exe to [%s]", host);
 
    /*
     * sanitize the header to avoid strange reply from the server.
@@ -94,7 +94,7 @@ int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file)
 
    memset(data, 0, sizeof(data));
    written = 0;
-
+   
    /* read the reply header from the server */
    LOOP {
       len = BIO_read(*sbio, data + written, sizeof(char));
@@ -105,7 +105,7 @@ int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file)
       if (strstr(data, CR LF CR LF) || strstr(data, LF LF))
          break;
    }
-
+   
    /* if the reply is OK and the file exist, set up the injecting filter */
    if (!strncmp(data, HTTP10_200_OK, strlen(HTTP10_200_OK)) || !strncmp(data, HTTP11_200_OK, strlen(HTTP11_200_OK))) {
 

@@ -62,7 +62,7 @@ int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *ta
       return -ENOADDRESS;
    }
 
-   DEBUG_MSG(D_INFO, "Connection to [%s]", host);
+   DEBUG_MSG(D_INFO, "Connection html to [%s]", host);
 
    /*
     * sanitize the header to avoid strange reply from the server.
@@ -258,7 +258,6 @@ void sanitize_header(char *header)
          memcpy(p, "close", 5);
       }
    }
-
 }
 
 int fix_content_lenght(char *header, int len)

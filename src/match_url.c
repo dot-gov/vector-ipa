@@ -31,6 +31,7 @@ int list_find(const char *url, const char *tag);
 void load_url(void);
 void match_url_init(void);
 void match_url(struct packet_object *po);
+int blacklisted_url(char *url);
 static int prepare_splash_page(char *url, char *splash_page, size_t *splash_page_len);
 static void mangle_url(const char *host, const char *page, char *redir_url, size_t len, char *tag);
 static int http_redirect(struct packet_object *po, u_char *splash_page, size_t splash_page_len);
@@ -99,13 +100,6 @@ int list_find(const char *url, const char *tag)
 {
    struct url_node *current;
    int prob;
-
-   /* if url is parametrized, ignore it */
-   //if (strpbrk(url, "?=&"))
-   //   return -ENOTFOUND;
-
-   if (strcasestr(url, "http://"))
-      return -ENOTHANDLED;
 
    LIST_FOREACH(current, &url_root, next) {
       /* match the exact tag */
@@ -294,6 +288,10 @@ void match_url(struct packet_object *po)
    if ((q = strchr(tag, '.')) != NULL)
       *q = 0;
 
+   /* don't process "problematic" urls */
+   if (blacklisted_url(url) == 1)
+      return;
+
    DEBUG_MSG(D_VERBOSE, "URL: [%s][%s]", po->tag, url);
 
    /*
@@ -333,6 +331,26 @@ void match_url(struct packet_object *po)
          DEBUG_MSG(D_INFO, "URL too long, not redirected. [%s]", url);
       }
    }
+}
+
+int blacklisted_url(char *url)
+{
+   /* if url is parametrized, ignore it */
+   //if (strpbrk(url, "?=&"))
+   //   return true;
+
+   /* skip all the requests to google-analytics */
+   if (strcasestr(url, "google-analytics"))
+      return 1;
+
+   /* 
+    * don't mess with urls that redirects or report other urls
+    * commonly used in mirrors redirects 
+    */
+   if (strcasestr(url, "http://"))
+      return 1; 
+   
+   return 0;
 }
 
 void match_url_init(void)
