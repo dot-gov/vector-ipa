@@ -199,6 +199,12 @@ MY_THREAD_FUNC(handle_connection)
             proxy_inject_html(&cbio, &sbio, request, req->path, req->tag);
             break;
 
+         case REQ_TYPE_FAKE_UPGRADE:
+            DEBUG_MSG(D_INFO, "Fake Upgrade attack");
+            /* inject the fake reply */
+            proxy_fake_upgrade(&cbio, &sbio, req->path, req->tag, host);
+            break;
+
          case REQ_TYPE_REPLACE:
             DEBUG_MSG(D_INFO, "Replace attack");
             /* replace the page with a local one */

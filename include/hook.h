@@ -32,7 +32,8 @@ void hook_point(int point, struct packet_object *po);
    #define HOOK_PACKET_VLAN      (HOOK_PACKET_BASE + 18)
    #define HOOK_PACKET_MPLS      (HOOK_PACKET_BASE + 19)
    #define HOOK_PACKET_PPPOE     (HOOK_PACKET_BASE + 20)
-   #define HOOK_PACKET_ERF       (HOOK_PACKET_BASE + 21)
+   #define HOOK_PACKET_PPP_PAP   (HOOK_PACKET_BASE + 21)
+   #define HOOK_PACKET_ERF       (HOOK_PACKET_BASE + 22)
 
    #define HOOK_PROTO_DHCP_REQUEST  (HOOK_PACKET_BASE + 30)
    #define HOOK_PROTO_DHCP_DISCOVER (HOOK_PACKET_BASE + 31)
