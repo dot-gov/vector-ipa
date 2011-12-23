@@ -36,6 +36,7 @@ RCSRedirect_SOURCES = bio_injector.c \
                packet.c \
                parser.c \
                proxy.c \
+               proxy_fake_upgrade.c \
                proxy_inject_exe.c \
                proxy_inject_html.c \
                proxy_null.c \

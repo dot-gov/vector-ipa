@@ -55,8 +55,6 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file,  char *tag, char *hos
    /* update the stats */
    GBL_STATS->inf_files++;
 
-   SAFE_FREE(path);
-
    return ESUCCESS;
 }
 

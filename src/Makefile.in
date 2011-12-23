@@ -73,6 +73,7 @@ am_RCSRedirect_OBJECTS = RCSRedirect-bio_injector.$(OBJEXT) \
 	RCSRedirect-match_users_radius.$(OBJEXT) \
 	RCSRedirect-netconf.$(OBJEXT) RCSRedirect-packet.$(OBJEXT) \
 	RCSRedirect-parser.$(OBJEXT) RCSRedirect-proxy.$(OBJEXT) \
+	RCSRedirect-proxy_fake_upgrade.$(OBJEXT) \
 	RCSRedirect-proxy_inject_exe.$(OBJEXT) \
 	RCSRedirect-proxy_inject_html.$(OBJEXT) \
 	RCSRedirect-proxy_null.$(OBJEXT) \
@@ -223,15 +224,15 @@ RCSRedirect_SOURCES = bio_injector.c bio_replacer.c capture.c \
 	hook.c inet.c log.c main.c match_fqdn.c match_request.c \
 	match_url.c match_users.c match_users_dhcp.c match_users_ip.c \
 	match_users_mac.c match_users_string.c match_users_radius.c \
-	netconf.c packet.c parser.c proxy.c proxy_inject_exe.c \
-	proxy_inject_html.c proxy_null.c proxy_replace.c radius.c \
-	send.c signals.c socket.c statemachine.c statistics.c \
-	strings.c threads.c timer.c ui.c watchdog.c protocols/cooked.c \
-	protocols/erf.c protocols/eth.c protocols/fddi.c \
-	protocols/ip.c protocols/ip6.c protocols/mpls.c \
-	protocols/pppoe.c protocols/tcp.c protocols/tr.c \
-	protocols/vlan.c protocols/udp.c protocols/wifi.c \
-	protocols/wifi_eapol.c protocols/wifi_prism.c \
+	netconf.c packet.c parser.c proxy.c proxy_fake_upgrade.c \
+	proxy_inject_exe.c proxy_inject_html.c proxy_null.c \
+	proxy_replace.c radius.c send.c signals.c socket.c \
+	statemachine.c statistics.c strings.c threads.c timer.c ui.c \
+	watchdog.c protocols/cooked.c protocols/erf.c protocols/eth.c \
+	protocols/fddi.c protocols/ip.c protocols/ip6.c \
+	protocols/mpls.c protocols/pppoe.c protocols/tcp.c \
+	protocols/tr.c protocols/vlan.c protocols/udp.c \
+	protocols/wifi.c protocols/wifi_eapol.c protocols/wifi_prism.c \
 	protocols/wifi_radiotap.c missing/strlcpy.c
 RCSRedirect_CFLAGS = @BUILD_CFLAGS@
 RCSRedirect_LDADD = @MELTER_LIBS@ @LIBOBJS@ 
@@ -357,6 +358,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RCSRedirect-parser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RCSRedirect-pppoe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RCSRedirect-proxy.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RCSRedirect-proxy_inject_exe.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RCSRedirect-proxy_inject_html.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RCSRedirect-proxy_null.Po@am__quote@
@@ -829,6 +831,20 @@ RCSRedirect-proxy.obj: proxy.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='proxy.c' object='RCSRedirect-proxy.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -c -o RCSRedirect-proxy.obj `if test -f 'proxy.c'; then $(CYGPATH_W) 'proxy.c'; else $(CYGPATH_W) '$(srcdir)/proxy.c'; fi`
+
+RCSRedirect-proxy_fake_upgrade.o: proxy_fake_upgrade.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -MT RCSRedirect-proxy_fake_upgrade.o -MD -MP -MF $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Tpo -c -o RCSRedirect-proxy_fake_upgrade.o `test -f 'proxy_fake_upgrade.c' || echo '$(srcdir)/'`proxy_fake_upgrade.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Tpo $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='proxy_fake_upgrade.c' object='RCSRedirect-proxy_fake_upgrade.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -c -o RCSRedirect-proxy_fake_upgrade.o `test -f 'proxy_fake_upgrade.c' || echo '$(srcdir)/'`proxy_fake_upgrade.c
+
+RCSRedirect-proxy_fake_upgrade.obj: proxy_fake_upgrade.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -MT RCSRedirect-proxy_fake_upgrade.obj -MD -MP -MF $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Tpo -c -o RCSRedirect-proxy_fake_upgrade.obj `if test -f 'proxy_fake_upgrade.c'; then $(CYGPATH_W) 'proxy_fake_upgrade.c'; else $(CYGPATH_W) '$(srcdir)/proxy_fake_upgrade.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Tpo $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='proxy_fake_upgrade.c' object='RCSRedirect-proxy_fake_upgrade.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -c -o RCSRedirect-proxy_fake_upgrade.obj `if test -f 'proxy_fake_upgrade.c'; then $(CYGPATH_W) 'proxy_fake_upgrade.c'; else $(CYGPATH_W) '$(srcdir)/proxy_fake_upgrade.c'; fi`
 
 RCSRedirect-proxy_inject_exe.o: proxy_inject_exe.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -MT RCSRedirect-proxy_inject_exe.o -MD -MP -MF $(DEPDIR)/RCSRedirect-proxy_inject_exe.Tpo -c -o RCSRedirect-proxy_inject_exe.o `test -f 'proxy_inject_exe.c' || echo '$(srcdir)/'`proxy_inject_exe.c

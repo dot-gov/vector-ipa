@@ -104,7 +104,7 @@ LDFLAGS =  -pthread
 LIBOBJS = 
 LIBS = -lpcap -lresolv -lpthread 
 LTLIBOBJS = 
-MAINT = #
+MAINT = 
 MAKEINFO = ${SHELL} /root/devel/vector-ipa/missing --run makeinfo
 MELTER_LIBS = -L../../RCSStreamingMelter/lib -lmelt -lstdc++ -L../../RCSStreamingMelter/deps/beaengine/lib -lBeaEngine_s -L../../RCSStreamingMelter/deps/asmjit/lib -lAsmJit -lboost_filesystem-mt -lboost_regex-mt -lboost_program_options-mt -lboost_system-mt
 MKDIR_P = /bin/mkdir -p
@@ -126,7 +126,7 @@ SHELL = /bin/sh
 SSLINC = 
 SSLLIB = -lssl -lcrypto
 STRIP = 
-VERSION = 2011.09.12
+VERSION = 2011.12.23
 abs_builddir = /root/devel/vector-ipa/share
 abs_srcdir = /root/devel/vector-ipa/share
 abs_top_builddir = /root/devel/vector-ipa
@@ -202,7 +202,7 @@ EXTRA_DIST = rcsredirect.conf \
 all: all-am
 
 .SUFFIXES:
-$(srcdir)/Makefile.in: # $(srcdir)/Makefile.am $(top_srcdir)/Makefile.am.common $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/Makefile.am.common $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -227,9 +227,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure: # $(am__configure_deps)
+$(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4): # $(am__aclocal_m4_deps)
+$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 install-sysconfDATA: $(sysconf_DATA)

