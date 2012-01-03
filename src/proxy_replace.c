@@ -86,15 +86,17 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host)
       char content[256];
       
       memset(content, 0, sizeof(content));
+      memset(output, 0, sizeof(output));
 	  
       /* get the mime type for the file */
       snprintf(mime_command, 256, "file -b --mime-type %s", path);
 	  
       FILE *p = popen(mime_command, "r");
       int r = fread(output, 1, sizeof(output), p);
-      if (r > 0) {
-         output[strlen(output) - 1] = 0;
-         snprintf(content, 256, "Content-Type: %s", output);
+      if (r > 0)
+      {
+         output[strcspn(output, "\x0d\x0a")] = 0;
+         snprintf(content, 256, "Content-Type: %s\r\n", output);
       }
       fclose(p);
       /*
