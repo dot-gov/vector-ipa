@@ -324,6 +324,7 @@ void my_thread_exit(void)
    THREADS_UNLOCK;
 
    /* perform a clean exit of the thread */
+   pthread_detach(id);
    pthread_exit(0);
 
 }
