@@ -80,6 +80,9 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host)
    } else if (strstr(file, ".jar")) {
 	  content_type = "Content-Type: application/java-archive\r\n";
 	  text_transfer = 0;
+   } else if (strstr(file, ".xml"))  {
+     content_type = "Content-Type: application/xml\r\n";
+     text_transfer = 1;
    } else {
       char mime_command[256];
       char output[128];
