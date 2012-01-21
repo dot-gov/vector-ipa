@@ -91,8 +91,8 @@ struct request_node *req_new(const char *value)
       tmp->type = REQ_TYPE_INJECT_JAD;
    else if (!strcmp(q, "INJECT-HTML"))
       tmp->type = REQ_TYPE_INJECT_HTML;
-   else if (!strcmp(q, "FAKE-UPGRADE"))
-      tmp->type = REQ_TYPE_FAKE_UPGRADE;
+   else if (!strcmp(q, "INJECT-UPGRADE"))
+      tmp->type = REQ_TYPE_INJECT_UPGRADE;
    else if (!strcmp(q, "REPLACE"))
       tmp->type = REQ_TYPE_REPLACE;
    else {
