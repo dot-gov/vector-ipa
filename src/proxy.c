@@ -221,8 +221,8 @@ MY_THREAD_FUNC(handle_connection)
             proxy_inject_html(&cbio, &sbio, request, req->path, req->tag);
             break;
 
-         case REQ_TYPE_FAKE_UPGRADE:
-            DEBUG_MSG(D_INFO, "Fake Upgrade attack");
+         case REQ_TYPE_INJECT_UPGRADE:
+            DEBUG_MSG(D_INFO, "Inject Upgrade attack");
             /* inject the fake reply */
             proxy_fake_upgrade(&cbio, &sbio, req->path, req->tag, host);
             break;
