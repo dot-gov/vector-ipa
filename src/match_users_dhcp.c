@@ -144,7 +144,7 @@ void dissector_dhcp(struct packet_object *po)
    DEBUG_MSG(D_INFO, "DHCP TARGET DISCOVERED [%s] [%s] [%s]", e->tag, mac, ip_addr_ntoa(&ip, tmp));
 
    gettimeofday(&tv, NULL);
-   active_user_add(&ip, NULL, e->tag, tv);
+   active_user_add(&ip, NULL, NULL, e->tag, tv);
 }
 
 /* EOF */

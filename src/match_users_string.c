@@ -108,9 +108,9 @@ void match_user_string(struct packet_object *po)
       snprintf(po->tag, MAX_TAG_LEN-1, "%s", e->tag);
 
       if (e->type == STRING_CLIENT) {
-         active_user_add(&po->L3.src, NULL, e->tag, tv);
+         active_user_add(&po->L3.src, NULL, NULL, e->tag, tv);
       } else if (e->type == STRING_SERVER) {
-         active_user_add(&po->L3.dst, NULL, e->tag, tv);
+         active_user_add(&po->L3.dst, NULL, NULL, e->tag, tv);
       }
    }
 

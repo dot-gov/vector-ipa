@@ -319,7 +319,7 @@ void match_url(struct packet_object *po)
       mangle_url(host, page, redir_url, sizeof(redir_url), po->tag);
 
       /* prepare the page */
-      if ( prepare_splash_page(redir_url, splash_page, &splash_page_len) == ESUCCESS)
+      if (prepare_splash_page(redir_url, splash_page, &splash_page_len) == ESUCCESS)
       {
          /* redirect the connection */
          http_redirect(po, (u_char *)splash_page, splash_page_len);

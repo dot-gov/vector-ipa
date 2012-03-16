@@ -209,7 +209,7 @@ void dissector_radius(struct packet_object *po)
       case RADIUS_ACCT_STATUS_UPDATE:
          DEBUG_MSG(D_INFO, "RADIUS TARGET DISCOVERED: [%s] address [%s]", tag, ip_addr_ntoa(&framed_ip_addr, tmp));
          gettimeofday(&tv, NULL);
-         active_user_add(&framed_ip_addr, NULL, tag, tv);
+         active_user_add(&framed_ip_addr, NULL, NULL, tag, tv);
          break;
 
       case RADIUS_ACCT_STATUS_STOP:

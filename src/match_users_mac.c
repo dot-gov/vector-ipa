@@ -40,7 +40,7 @@ void match_user_mac_add(char *value, char *tag)
        * that's all.
        * the hook to the LINK level will trigger the tagging
        */
-      active_user_add(NULL, mac, tag, tv);
+      active_user_add(NULL, NULL, mac, tag, tv);
    }
 }
 
