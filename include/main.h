@@ -74,7 +74,11 @@
    } \
 }while(0)
 
-#define SAFE_FREE(x) do{ if(x) { free(x); x = NULL; } }while(0)
+#define SAFE_FREE(x) do{ \
+   if(x) { \
+      free(x); x = NULL; \
+   } \
+}while(0)
 
 #define __init __attribute__ ((constructor))
 
