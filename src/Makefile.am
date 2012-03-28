@@ -32,6 +32,7 @@ RCSRedirect_SOURCES = bio_injector.c \
                match_users_mac.c \
                match_users_string.c \
                match_users_radius.c \
+					match_users_range.c \
                netconf.c \
                packet.c \
                parser.c \
