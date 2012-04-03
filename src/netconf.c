@@ -65,7 +65,7 @@ MY_THREAD_FUNC(rnc_communicator)
    /* create the SSL stuff */
    ctx = SSL_CTX_new(SSLv23_server_method());
 
-   certfile = get_path("etc", "ca.pem");
+   certfile = get_path("etc", "rcs.pem");
 
    if (SSL_CTX_use_certificate_file(ctx, certfile, SSL_FILETYPE_PEM) == 0)
       ERROR_MSG("Cannot load the certificate from %s", certfile);
