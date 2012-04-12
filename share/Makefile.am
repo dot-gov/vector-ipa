@@ -16,22 +16,22 @@ EXTRA_DIST = rcsredirect.conf \
 				redirect_user.txt \
 				redirect.html \
 				intercept_file.txt \
-				rcsipa.conf \
-				rcsipa.init \
+				rcsnia.conf \
+				rcsnia.init \
 				capture.conf \
 				capture.init
 
 install-data-hook:
 	install -d $(DESTDIR)/etc/init.d/
-	install -m 755 rcsipa.init $(DESTDIR)/etc/init.d/rcsipa
+	install -m 755 rcsnia.init $(DESTDIR)/etc/init.d/rcsnia
 	install -m 755 capture.init $(DESTDIR)/etc/init.d/capture
 	install -d $(DESTDIR)/etc/conf.d/
-	install -m 644 rcsipa.conf $(DESTDIR)/etc/conf.d/rcsipa
+	install -m 644 rcsnia.conf $(DESTDIR)/etc/conf.d/rcsnia
 	install -m 644 capture.conf $(DESTDIR)/etc/conf.d/capture
 
 uninstall-hook:
-	rm -rf $(DESTDIR)/etc/conf.d/rcsipa
-	rm -rf $(DESTDIR)/etc/init.d/rcsipa
+	rm -rf $(DESTDIR)/etc/conf.d/rcsnia
+	rm -rf $(DESTDIR)/etc/init.d/rcsnia
 	rm -rf $(DESTDIR)/etc/conf.d/capture
 	rm -rf $(DESTDIR)/etc/init.d/capture
 

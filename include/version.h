@@ -4,9 +4,9 @@
 #ifndef __VERS_H
 #define __VERS_H
 
-#define RCS_VER            "2011122301"
-#define VERSION            "2011.12.23"
-#define COPYRIGHT          "2011"
+#define RCS_VER            "2012013101"
+#define VERSION            "2012.01.31"
+#define COPYRIGHT          "2008-2012"
 #define AUTHORS            "HackingTeam srl"
 
 #endif

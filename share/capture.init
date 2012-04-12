@@ -108,7 +108,7 @@ mode="664"
          eend 0
 
       einfo "Loading configuration in CAT table on ($DAG_DEVICE)"
-         $DAG_CAT -d $DAG_DEVICE -f /rcsipa/etc/cat.rules >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         $DAG_CAT -d $DAG_DEVICE -f /rcsnia/etc/cat.rules >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
          if [ $? == 0 ]; then
             eend 0
          else
@@ -125,7 +125,7 @@ mode="664"
             BANK=1
          fi
          einfo "Loading filters on bank $BANK"
-         $DAG_FILTER -d $DAG_DEVICE --db $BANK --initialize -f /rcsipa/etc/filter.rules >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         $DAG_FILTER -d $DAG_DEVICE --db $BANK --initialize -f /rcsnia/etc/filter.rules >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
          if [ $? == 0 ]; then
             eend 0
          else
