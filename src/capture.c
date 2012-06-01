@@ -234,6 +234,7 @@ void capture_init(void)
 
 void capture_close(void)
 {
+	int i;
 
 	/* if the interface is wireless, disable the monitor mode */
     if (iface_is_wireless(GBL_OPTIONS->Siface)) {
@@ -260,8 +261,6 @@ void capture_close(void)
         } while (0);
     }
 
- 	int i;
- 
  	/* make sure all the devices are closed correctly */
  	for (i = 0; i < DAG_PARALLEL_CORES; i++) {
  		if (GBL_PCAP->pcap[i]) {
@@ -269,13 +268,6 @@ void capture_close(void)
  			DEBUG_MSG(D_DEBUG, "ATEXIT: capture_closed pcap[%d]", i);
  		}
  	}
-
-/*
-   if (GBL_PCAP->pcap)
-      pcap_close(GBL_PCAP->pcap);
-         
-	DEBUG_MSG(D_DEBUG, "ATEXIT: capture_closed pcap[%d]");
-*/
 }
 
 void capture_start(void)
