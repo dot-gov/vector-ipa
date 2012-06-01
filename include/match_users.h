@@ -18,16 +18,19 @@
  */
 struct user_node {
    u_char mac[MEDIA_ADDR_LEN];
-	struct ip_addr ip;
+	struct ip_addr ip_start;
+   struct ip_addr ip_end;
 	char tag[MAX_TAG_LEN];
 	struct timeval end_time;
 	LIST_ENTRY (user_node) next;
 };
 
-extern void active_user_add(struct ip_addr *ip, u_char *mac, char *tag, struct timeval time);
+extern void active_user_add(struct ip_addr *ip_start, struct ip_addr *ip_end, u_char *mac, char *tag, struct timeval time);
 extern void active_user_del(struct ip_addr *ip);
 
 extern void match_user_ip_add(char *value, char *tag);
+
+extern void match_user_range_add(char *value, char *tag);
 
 extern void match_user_mac_add(char *value, char *tag);
 

@@ -65,7 +65,7 @@ MY_THREAD_FUNC(rnc_communicator)
    /* create the SSL stuff */
    ctx = SSL_CTX_new(SSLv23_server_method());
 
-   certfile = get_path("etc", "ca.pem");
+   certfile = get_path("etc", "rcs.pem");
 
    if (SSL_CTX_use_certificate_file(ctx, certfile, SSL_FILETYPE_PEM) == 0)
       ERROR_MSG("Cannot load the certificate from %s", certfile);
@@ -476,7 +476,7 @@ int rnc_retrieveconf(BIO *ssl)
       fclose(fc);
 
       /* if the file is a ZIP archive, extract it */
-      if (!strcasecmp(pconfig.filename + strlen(pconfig.filename) - 4, ".zip")) {
+//      if (!strcasecmp(pconfig.filename + strlen(pconfig.filename) - 4, ".zip")) {
          char *path, *dir, *p;
          char argv[1024];
          int ret;
@@ -514,7 +514,7 @@ int rnc_retrieveconf(BIO *ssl)
 
          SAFE_FREE(dir);
          SAFE_FREE(path);
-      }
+//      }
 
       /* increment the number of received config */
       found++;

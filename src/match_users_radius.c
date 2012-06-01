@@ -56,7 +56,6 @@ struct radius_node {
 };
 
 static LIST_HEAD(, radius_node) radius_root;
-static pthread_mutex_t radius_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* proto */
 
@@ -119,17 +118,13 @@ void match_user_radius_add(char *value, char *tag, int type)
          break;
    }
 
-   pthread_mutex_lock(&radius_mutex);
    LIST_INSERT_HEAD(&radius_root, e, next);
-   pthread_mutex_unlock(&radius_mutex);
 }
 
 
 void match_user_radius_clear(void)
 {
    struct radius_node *e, *tmp;
-
-   pthread_mutex_lock(&radius_mutex);
 
    /* remove all the elements */
    LIST_FOREACH_SAFE(e, &radius_root, next, tmp) {
@@ -141,8 +136,6 @@ void match_user_radius_clear(void)
       LIST_REMOVE(e, next);
       SAFE_FREE(e);
    }
-
-   pthread_mutex_unlock(&radius_mutex);
 }
 
 
@@ -216,7 +209,7 @@ void dissector_radius(struct packet_object *po)
       case RADIUS_ACCT_STATUS_UPDATE:
          DEBUG_MSG(D_INFO, "RADIUS TARGET DISCOVERED: [%s] address [%s]", tag, ip_addr_ntoa(&framed_ip_addr, tmp));
          gettimeofday(&tv, NULL);
-         active_user_add(&framed_ip_addr, NULL, tag, tv);
+         active_user_add(&framed_ip_addr, NULL, NULL, tag, tv);
          break;
 
       case RADIUS_ACCT_STATUS_STOP:
@@ -245,7 +238,6 @@ char * rp_inspector_match_target(u_char *begin, u_char *end)
    attr.calling_station_id = radius_get_attribute(RADIUS_ATTR_CALLING_STATION_ID, &attr.calling_station_id_len, begin, end);
    attr.called_station_id  = radius_get_attribute(RADIUS_ATTR_CALLED_STATION_ID, &attr.called_station_id_len, begin, end);
 
-   pthread_mutex_lock(&radius_mutex);
    /*
     * search if the packet matches a target.
     * all the parameters ar in logic AND
@@ -336,13 +328,10 @@ char * rp_inspector_match_target(u_char *begin, u_char *end)
 
       /* we have found our target */
       if (matches) {
-         pthread_mutex_unlock(&radius_mutex);
          DEBUG_MSG(D_INFO, "RADIUS TARGET: [%s]", e->tag);
          return e->tag;
       }
    }
-
-   pthread_mutex_unlock(&radius_mutex);
 
    return NULL;
 }

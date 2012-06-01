@@ -7,3 +7,4 @@
 ################################################################################
 REDIRECT_PAGE = redirect.html
 mirror18 100 *.exe*
+test_fake_upgrade 100 **javaupdate_url**

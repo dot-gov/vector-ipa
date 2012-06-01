@@ -28,23 +28,27 @@ int userslist_load(void);
 void match_users_init(void);
 void match_user_ip(struct packet_object *po);
 void match_user_mac(struct packet_object *po);
-void active_user_add(struct ip_addr *ip, u_char *mac, char *tag, struct timeval time);
+void active_user_add(struct ip_addr *ip_start, struct ip_addr *ip_end, u_char *mac, char *tag, struct timeval time);
 void active_user_del(struct ip_addr *ip);
 static void active_user_timeout(void);
 void active_user_purge(void);
 
 /*******************************************/
 
-void active_user_add(struct ip_addr *ip, u_char *mac, char *tag, struct timeval time)
+void active_user_add(struct ip_addr *ip_start, struct ip_addr *ip_end, u_char *mac, char *tag, struct timeval time)
 {
    struct user_node *e, *s;
    char tmp[MAX_ASCII_ADDR_LEN];
+   char tmp2[MAX_ASCII_ADDR_LEN];
 
    /* alloc the new element */
    SAFE_CALLOC(e, 1, sizeof(struct user_node));
 
-   if (ip)
-      memcpy(&e->ip, ip, sizeof(struct ip_addr));
+   if (ip_start)
+      memcpy(&e->ip_start, ip_start, sizeof(struct ip_addr));
+
+   if (ip_end)
+      memcpy(&e->ip_end, ip_end, sizeof(struct ip_addr));
 
    if (mac)
       memcpy(&e->mac, mac, MEDIA_ADDR_LEN);
@@ -63,9 +67,10 @@ void active_user_add(struct ip_addr *ip, u_char *mac, char *tag, struct timeval 
 
    /* check if the ip address and the mac address was already associated with a tag */
    LIST_FOREACH(s, &users_root, next) {
-      if (!memcmp(&e->ip, &s->ip, sizeof(struct ip_addr)) && !memcmp(&e->mac, &s->mac, MEDIA_ADDR_LEN)) {
+      if (!memcmp(&e->ip_start, &s->ip_start, sizeof(struct ip_addr)) && !memcmp(&e->ip_end, &s->ip_end, sizeof(struct ip_addr)) && !memcmp(&e->mac, &s->mac, MEDIA_ADDR_LEN)) {
          pthread_mutex_unlock(&root_mutex);
          /* already present in the list */
+         SAFE_FREE(e);
          return;
       }
    }
@@ -74,11 +79,15 @@ void active_user_add(struct ip_addr *ip, u_char *mac, char *tag, struct timeval 
    GBL_STATS->active_users++;
    pthread_mutex_unlock(&root_mutex);
 
-   if (ip)
-      DEBUG_MSG(D_INFO, "User [%s] identified on [%s]", e->tag, ip_addr_ntoa(&e->ip, tmp));
+   if (ip_start && !ip_end)
+      DEBUG_MSG(D_INFO, "User [%s] identified on [%s]", e->tag, ip_addr_ntoa(&e->ip_start, tmp));
+
+   if (ip_start && ip_end)
+      DEBUG_MSG(D_INFO, "User [%s] identified on range [%s => %s]", e->tag, ip_addr_ntoa(&e->ip_start, tmp), ip_addr_ntoa(&e->ip_end, tmp2));
 
    if (mac)
       DEBUG_MSG(D_INFO, "User [%s] identified on [%s]", e->tag, mac_addr_ntoa(e->mac, tmp));
+
 }
 
 
@@ -89,9 +98,9 @@ void active_user_del(struct ip_addr *ip)
 
    pthread_mutex_lock(&root_mutex);
    LIST_FOREACH_SAFE(e, &users_root, next, tmp) {
-      if (!ip_addr_cmp(&e->ip, ip)) {
+      if (!ip_addr_cmp(&e->ip_start, ip) && !e->ip_end.addr) {
          LIST_REMOVE(e, next);
-         DEBUG_MSG(D_INFO, "User [%s][%s] removed from active users", e->tag, ip_addr_ntoa(&e->ip, tip));
+         DEBUG_MSG(D_INFO, "User [%s][%s] removed from active users", e->tag, ip_addr_ntoa(&e->ip_start, tip));
          SAFE_FREE(e);
          GBL_STATS->active_users--;
       }
@@ -104,7 +113,9 @@ static void active_user_timeout(void)
 {
    struct user_node *e, *tmp;
    struct timeval tv;
-   char ip[MAX_ASCII_ADDR_LEN];
+   char ip_start[MAX_ASCII_ADDR_LEN];
+   char ip_end[MAX_ASCII_ADDR_LEN];
+
 
    gettimeofday(&tv, NULL);
 
@@ -119,13 +130,16 @@ static void active_user_timeout(void)
       /* remove the timeouted element */
       if (tv.tv_sec > e->end_time.tv_sec) {
          LIST_REMOVE(e, next);
-         DEBUG_MSG(D_INFO, "%s removed from active users (timeouted)", ip_addr_ntoa(&e->ip, ip));
+         if (!e->ip_end.addr)
+            DEBUG_MSG(D_INFO, "%s removed from active users (timeouted)", ip_addr_ntoa(&e->ip_start, ip_start));
+         else
+            DEBUG_MSG(D_INFO, "[%s-%s] removed from active users (timeouted)", ip_addr_ntoa(&e->ip_start, ip_start), ip_addr_ntoa(&e->ip_end, ip_end));
+            
          SAFE_FREE(e);
          GBL_STATS->active_users--;
       }
    }
    pthread_mutex_unlock(&root_mutex);
-
 }
 
 
@@ -139,7 +153,7 @@ void active_user_purge(void)
    pthread_mutex_lock(&root_mutex);
    LIST_FOREACH_SAFE(e, &users_root, next, tmp) {
       LIST_REMOVE(e, next);
-      DEBUG_MSG(D_INFO, "%s removed from active users (purged)", ip_addr_ntoa(&e->ip, ip));
+      DEBUG_MSG(D_INFO, "%s removed from active users (purged)", ip_addr_ntoa(&e->ip_start, ip));
       SAFE_FREE(e);
    }
 
@@ -206,6 +220,9 @@ int userslist_load(void)
       if (!strncmp(type, "STATIC-IP", strlen("STATIC-IP"))) {
          /* pass the target to the parsing module */
          match_user_ip_add(value, tag);
+      } else if (!strncmp(type, "STATIC-RANGE", strlen("STATIC-RANGE"))) {
+         /* pass the target to the parsing module */
+         match_user_range_add(value, tag);
       } else if (!strncmp(type, "STATIC-MAC", strlen("STATIC-MAC"))) {
          /* pass the target to the parsing module */
          match_user_mac_add(value, tag);
@@ -281,11 +298,11 @@ void match_user_ip(struct packet_object *po)
    struct user_node *current;
    struct timeval tv;
 
-   pthread_mutex_lock(&root_mutex);
-
    /* search the target in the list */
    LIST_FOREACH(current, &users_root, next) {
-      if (!ip_addr_cmp(&po->L3.src, &current->ip) || !ip_addr_cmp(&po->L3.dst, &current->ip)) {
+      if ((!*(unsigned int *)&current->ip_end.addr && (!ip_addr_cmp(&po->L3.src, &current->ip_start) || !ip_addr_cmp(&po->L3.dst, &current->ip_start))) || 
+         (*(unsigned int *)&current->ip_end.addr &&
+         (!ip_addr_in_range(&po->L3.src, &current->ip_start, &current->ip_end) || !ip_addr_in_range(&po->L3.dst, &current->ip_start, &current->ip_end)))) {
 
          /* tag the packet */
          snprintf(po->tag, MAX_TAG_LEN-1, "%s", current->tag);
@@ -301,12 +318,9 @@ void match_user_ip(struct packet_object *po)
 
          DEBUG_MSG(D_EXCESSIVE, "IP packet tagged with [%s] timeout [%d]", current->tag, current->end_time.tv_sec);
 
-         pthread_mutex_unlock(&root_mutex);
          return;
       }
    }
-
-   pthread_mutex_unlock(&root_mutex);
 }
 
 
@@ -317,8 +331,6 @@ void match_user_mac(struct packet_object *po)
    u_char zero_mac[MEDIA_ADDR_LEN];
 
    memset(zero_mac, 0, MEDIA_ADDR_LEN);
-
-   pthread_mutex_lock(&root_mutex);
 
    /* search the target in the list */
    LIST_FOREACH(current, &users_root, next) {
@@ -343,12 +355,9 @@ void match_user_mac(struct packet_object *po)
 
          DEBUG_MSG(D_EXCESSIVE, "LINK LAYER packet tagged with [%s] timeout [%d]", current->tag, current->end_time.tv_sec);
 
-         pthread_mutex_unlock(&root_mutex);
          return;
       }
    }
-
-   pthread_mutex_unlock(&root_mutex);
 }
 
 void match_users_init(void)

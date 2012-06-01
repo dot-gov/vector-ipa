@@ -1,0 +1,161 @@
+#!/sbin/runscript
+#
+# Copyright 2009 Alberto Ornaghi (HT srl)
+#
+
+depend() {
+   need localmount logger 
+   provide dag
+   after ntp-client
+}
+
+start() {
+      
+device="dag"
+group="root"
+mode="664"
+
+   ebegin "Starting the Hardware Capture Subsystem"
+   eindent
+      rm -f /tmp/endace_boot.log 2> /dev/null
+      einfo "Loading the kernel modules"
+      /sbin/modprobe dagmem dsize=$DAG_MEMSIZE >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+      if [ "`lsmod | grep -w dagmem`" ]; then
+         /sbin/modprobe dag >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         if [ "`lsmod | grep -w dag`" ]; then
+            eend 0
+         else
+            logger -t modprobe -p local7.err "FATAL: unable to load device modules"
+            eend 1 "FATAL: unable to load device modules"
+            return 1
+         fi
+      else
+         logger -t modprobe -p local7.err "FATAL: unable to load memory modules"
+         eend 1 "FATAL: unable to load memory modules"
+         return 1
+      fi
+      einfo "Creating the devices in /dev"
+         major=`cat /proc/devices | awk "\\$2==\"dag\" {print \\$1}"`
+
+         # The minor numbers need to be syncronized with the values in dag.c
+         for i in mem iom arm "" ; do
+             rm -f /dev/${device}${i}*
+         done
+
+         for i in `seq 0 15` ; do
+             mknod /dev/${device}$i    c $major $i
+             mknod /dev/${device}mem$i c $major $((16+$i))
+             mknod /dev/${device}iom$i c $major $((32+$i))
+             mknod /dev/${device}arm$i c $major $((48+$i))
+         done
+
+         ln -sf ${device}0 /dev/${device}
+
+         for i in mem iom arm "" ; do
+             chgrp $group /dev/${device}${i}*
+             chmod $mode  /dev/${device}${i}*
+         done
+      eend 0
+   
+      DAG_COMMAND="/usr/local/bin/dagconfig"
+      DAG_CAT="/usr/local/bin/dagcat-setup"
+      DAG_FILTER="/usr/local/bin/dagfilter-loader"
+      DAG_VERSION=`/usr/local/bin/dagdetect -np 2> /dev/null`
+      
+      einfo "Searching for a supported Card"
+         if [ "$DAG_VERSION" == "DAG_7.5G2" ]; then
+            eend 0 
+         elif [ "$DAG_VERSION" == "DAG_7.5G4" ]; then
+            eend 0
+         elif [ "$DAG_VERSION" == "DAG_9.2X2" ]; then
+            eend 0
+         elif [ "$DAG_VERSION" == "" ]; then
+            eend 1 "Card not found"
+            return 1
+         else
+            eend 1 "Unsupported card ($DAG_VERSION)"
+            return 1
+         fi
+
+      einfo "Disabling load balancing on ($DAG_DEVICE)"
+        $DAG_COMMAND -d $DAG_DEVICE -S hash_encoding_from_ipf=off >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+        eend 0
+      
+      einfo "Configuring the capturing device ($DAG_VERSION)"
+      $DAG_COMMAND -d $DAG_DEVICE $DAG_OPTIONS mem=$MEM_BUFFERS >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+      if [ $? == 0 ]; then
+         eend 0
+      else
+         logger -f /tmp/endace_boot.log -p local7.info -t dag
+         eend 1 "FATAL: unable to set capturing parameters"
+         return 1
+      fi
+
+      einfo "Enabling load balancing on ($DAG_DEVICE)"
+         $DAG_COMMAND -d $DAG_DEVICE -S hash_encoding_from_ipf=on >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         eend 0
+
+      einfo "Balancing on source-destination IP"
+         $DAG_COMMAND -d $DAG_DEVICE -S n_tuple_select=$N_TUPLE >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         eend 0
+
+      einfo "Setting up bins for load balancing"
+         $DAG_COMMAND -d $DAG_DEVICE -S hat_range=$HAT_RANGE >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         eend 0
+
+      einfo "Setting up balancing for 8 cores"
+         $DAG_COMMAND -d $DAG_DEVICE -S hash_width=$HASH_WIDTH >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         eend 0
+
+      einfo "Loading configuration in CAT table on ($DAG_DEVICE)"
+         $DAG_CAT -d $DAG_DEVICE -f /rcsnia/etc/cat.rules >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         if [ $? == 0 ]; then
+            eend 0
+         else
+            logger -f /tmp/endace_boot.log -p local7.info -t dag
+            eend 1 "FATAL: unable to configure CAT table"
+            return 1
+         fi
+
+      einfo "Setting up filters on ($DAG_DEVICE)"
+         ACTIVE_BANK=`$DAG_COMMAND -d $DAG_DEVICE -G activate_bank | awk -F" = " '{ print $2 }' | tr -d '\n'`
+         if [ "$ACTIVE_BANK" == "on" ]; then
+            BANK=0
+         else
+            BANK=1
+         fi
+         einfo "Loading filters on bank $BANK"
+         $DAG_FILTER -d $DAG_DEVICE --db $BANK --initialize -f /rcsnia/etc/filter.rules >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+         if [ $? == 0 ]; then
+            eend 0
+         else
+            logger -f /tmp/endace_boot.log -p local7.info -t dag
+            eend 1 "FATAL: unable to load filters"
+            return 1
+         fi
+
+      einfo "Write the configuration to the log"
+         logger -f /tmp/endace_boot.log -p local7.info -t dag
+      eend $?
+      
+      einfo "Syncronizing clock with host"
+         /usr/local/bin/dagclock -d0 none overin -kx >> /tmp/endace_boot.log 2>> /tmp/endace_boot.log
+      eend $?
+      
+   eoutdent
+}
+
+stop() {
+   ebegin "Stopping the Hardware Capture Subsystem"
+   eindent
+      einfo "Unloding the kernel modules"
+      rmmod dag 
+      rmmod divdi3 dagmem
+      eend $?
+      einfo "Removing devices from /dev"
+      rm -f /dev/dag{,mem,iom,arm}[0-3] >> /dev/null
+      eend 0
+   eoutdent
+}
+
+# vim:ts=4:expandtab

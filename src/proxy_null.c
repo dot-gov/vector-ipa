@@ -55,7 +55,7 @@ int proxy_null(BIO **cbio, BIO **sbio, char *header)
       return -ENOADDRESS;
    }
 
-   DEBUG_MSG(D_INFO, "Connection to [%s]", host);
+   DEBUG_MSG(D_INFO, "Connection null to [%s]", host);
 
    /*
     * sanitize the header to avoid strange reply from the server.

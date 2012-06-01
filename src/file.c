@@ -303,7 +303,7 @@ off_t file_get_size(char *path, char *base_path)
    if (base_path) {
       ret = file_absolute_path(base_path, path, &fullpath);
       if (ret != ESUCCESS)
-	 return -EFAILURE;
+         return -EFAILURE;
    } else
       fullpath = path;
 

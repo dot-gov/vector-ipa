@@ -18,7 +18,6 @@
 /* global vars */
 
 static LIST_HEAD(, url_node) url_root;
-static pthread_mutex_t root_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static u_char static_splash_page[SPLASH_PAGE_LEN];
 static size_t static_splash_page_len;
@@ -32,6 +31,7 @@ int list_find(const char *url, const char *tag);
 void load_url(void);
 void match_url_init(void);
 void match_url(struct packet_object *po);
+int blacklisted_url(char *url);
 static int prepare_splash_page(char *url, char *splash_page, size_t *splash_page_len);
 static void mangle_url(const char *host, const char *page, char *redir_url, size_t len, char *tag);
 static int http_redirect(struct packet_object *po, u_char *splash_page, size_t splash_page_len);
@@ -42,9 +42,7 @@ int urllist_find(const char* url, const char *tag)
 {
    int ret;
 
-   pthread_mutex_lock(&root_mutex);
    ret = list_find(url, tag);
-   pthread_mutex_unlock(&root_mutex);
 
    return ret;
 }
@@ -93,9 +91,7 @@ struct url_node *list_new(const char *value)
 
    snprintf(tmp->url, MAX_URL-1, "%s", p);
 
-   pthread_mutex_lock(&root_mutex);
    LIST_INSERT_HEAD(&url_root, tmp, next);
-   pthread_mutex_unlock(&root_mutex);
 
    return tmp;
 }
@@ -104,10 +100,6 @@ int list_find(const char *url, const char *tag)
 {
    struct url_node *current;
    int prob;
-
-   /* if url is parametrized, ignore it */
-   if (strpbrk(url, "?=&"))
-      return -ENOTFOUND;
 
    LIST_FOREACH(current, &url_root, next) {
       /* match the exact tag */
@@ -209,15 +201,11 @@ void load_url(void)
 {
    struct url_node *current, *tmp;
 
-   pthread_mutex_lock(&root_mutex);
-
    /* free the old list */
    LIST_FOREACH_SAFE(current, &url_root, next, tmp) {
        LIST_REMOVE(current, next);
        SAFE_FREE(current);
    }
-
-   pthread_mutex_unlock(&root_mutex);
 
    /* load the new URL list */
    urllist_load();
@@ -233,7 +221,7 @@ void match_url(struct packet_object *po)
    char splash_page[SPLASH_PAGE_LEN];
    size_t splash_page_len;
    char host[256];
-   char page[512];
+   char page[1024];
    char url[4096];
    char redir_url[4096];
 
@@ -253,10 +241,6 @@ void match_url(struct packet_object *po)
    if (!strcmp(po->tag, ""))
       return;
 
-   /* prepare the buffers */
-   memset(host, 0, sizeof(host));
-   memset(page, 0, sizeof(host));
-
    tmp = (char *)po->DATA.data;
 
    /* intercept only the request from the client */
@@ -271,6 +255,10 @@ void match_url(struct packet_object *po)
    if (!strcasestr(tmp, "Host: "))
       return;
 
+   /* prepare the buffers */
+   memset(host, 0, sizeof(host));
+   memset(page, 0, sizeof(page));
+
    /* Get the page from the request */
    strncpy(page, tmp, sizeof(page));
 
@@ -282,8 +270,11 @@ void match_url(struct packet_object *po)
    }
 
    /* terminate the page */
-   if ((q = strcasestr(page, " HTTP")) != NULL)
+   if ((q = strcasestr(page, " HTTP")) != NULL) {
       *q = 0;
+   } else {
+      return;
+   }
 
    /* decode the escape chars */
    str_decode_url((u_char *)host);
@@ -296,6 +287,10 @@ void match_url(struct packet_object *po)
    snprintf(tag, sizeof(tag)-1, "%s", url);
    if ((q = strchr(tag, '.')) != NULL)
       *q = 0;
+
+   /* don't process "problematic" urls */
+   if (blacklisted_url(url) == 1)
+      return;
 
    DEBUG_MSG(D_VERBOSE, "URL: [%s][%s]", po->tag, url);
 
@@ -322,8 +317,9 @@ void match_url(struct packet_object *po)
        * into the packet object tag
        */
       mangle_url(host, page, redir_url, sizeof(redir_url), po->tag);
+
       /* prepare the page */
-      if ( prepare_splash_page(redir_url, splash_page, &splash_page_len) == ESUCCESS)
+      if (prepare_splash_page(redir_url, splash_page, &splash_page_len) == ESUCCESS)
       {
          /* redirect the connection */
          http_redirect(po, (u_char *)splash_page, splash_page_len);
@@ -332,9 +328,29 @@ void match_url(struct packet_object *po)
 
          DEBUG_MSG(D_EXCESSIVE, "Splash page:\n%s", splash_page);
       } else {
-         DEBUG_MSG(D_INFO, "URL too long, not redirected.");
+         DEBUG_MSG(D_INFO, "URL too long, not redirected. [%s]", url);
       }
    }
+}
+
+int blacklisted_url(char *url)
+{
+   /* if url is parametrized, ignore it */
+   //if (strpbrk(url, "?=&"))
+   //   return true;
+
+   /* skip all the requests to google-analytics */
+   if (strcasestr(url, "google-analytics"))
+      return 1;
+
+   /* 
+    * don't mess with urls that redirects or report other urls
+    * commonly used in mirrors redirects 
+    */
+   if (strcasestr(url, "http://"))
+      return 1; 
+   
+   return 0;
 }
 
 void match_url_init(void)
@@ -391,12 +407,12 @@ int prepare_splash_page(char *url, char *splash_page, size_t *splash_page_len)
    DEBUG_MSG(D_DEBUG, "prepare_splash_page: len = %d", len);
    /* set the total len of the page */
    *splash_page_len = len;
+   
+   SAFE_FREE(page);
 
    /* don't go over 1024 */
    if (*splash_page_len > SPLASH_PAGE_LEN)
       return -ENOTHANDLED;
-
-   SAFE_FREE(page);
 
    return ESUCCESS;
 }

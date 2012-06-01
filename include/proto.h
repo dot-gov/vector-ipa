@@ -29,6 +29,7 @@ enum {
    LL_TYPE_IP6    = 0x86DD,
    LL_TYPE_PPP    = 0x880B,
    LL_TYPE_PPPOE  = 0x8864,
+   LL_TYPE_PAP    = 0xc023,
    LL_TYPE_MPLS   = 0x8847,
    LL_TYPE_8021x  = 0x888E
 };

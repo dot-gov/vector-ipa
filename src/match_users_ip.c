@@ -44,7 +44,7 @@ void match_user_ip_add(char *value, char *tag)
        * that's all.
        * the hook to the IP level will trigger the tagging
        */
-      active_user_add(&uip, NULL, tag, tv);
+      active_user_add(&uip, NULL, NULL, tag, tv);
    }
 }
 
