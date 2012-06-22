@@ -25,6 +25,7 @@ static pthread_mutex_t root_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void load_users(void);
 int userslist_load(void);
+int tactical_userslist_load(char *);
 void match_users_init(void);
 void match_user_ip(struct packet_object *po);
 void match_user_mac(struct packet_object *po);
@@ -166,7 +167,7 @@ int userslist_load(void)
 {
    FILE *fc;
    char line[512];
-   int counter = 0;
+   int counter = 0, count = 0;
    char *p, *q;
    char *type, *value, *tag;
 
@@ -247,7 +248,13 @@ int userslist_load(void)
       } else if (!strncmp(type, "DHCP", strlen("DHCP"))) {
          /* pass the target to the parsing module */
          match_user_dhcp_add(value, tag);
-      } else {
+		} else if (!strncmp(type, "TACTICAL", strlen("TACTICAL"))) {
+			/* 
+			 * pass the targents to the parsing module 
+			 * OSS. value = tag
+			 */
+   		count = tactical_userslist_load(value);
+		} else {
          DEBUG_MSG(D_ERROR, "ERROR: Invalid entry [%s][%s][%s]", type, value, tag);
          continue;
       }
@@ -258,11 +265,58 @@ int userslist_load(void)
 
    fclose(fc);
 
-   DEBUG_MSG(D_INFO, "List of redirected USERS contains : %04d entries.", counter);
-
-   GBL_STATS->tot_users = counter;
+	if (count > 0) {
+		DEBUG_MSG(D_INFO, "List of redirected USERS contains : %04d entries.", counter + count);
+		GBL_STATS->tot_users = counter + count;
+	} else {
+	   DEBUG_MSG(D_INFO, "List of redirected USERS contains : %04d entries.", counter);
+   	GBL_STATS->tot_users = counter;
+	}
 
    return 0;
+}
+
+int tactical_userslist_load(char *tag)
+{
+	char mac[18], *range;
+	FILE *fp;
+	int counter = 0;
+	
+	ON_ERROR(GBL_CONF->redirected_tactical, NULL, "Cannot open a NULL file!");
+
+   /* errors are handled by the function */
+   fp = open_data("etc", GBL_CONF->redirected_tactical, FOPEN_READ_TEXT);
+   ON_ERROR(fp, NULL, "Cannot open %s", GBL_CONF->redirected_tactical);
+
+	/* read the file */
+	while (! feof(fp)) {
+		memset(mac, '\0', sizeof(char) * 18);
+
+		if (fscanf(fp, "%s\n", mac) == EOF) {
+			break;
+		}
+
+		if (! strcmp(mac, "ALL") || ! strcmp(mac, "All") || ! strcmp(mac, "all")) {
+			range = "0.0.0.0-255.255.255.255";
+			match_user_range_add(range, tag);
+			counter = -1;
+			break;
+		} else {
+			match_user_mac_add(mac, tag);
+			counter++;
+		}
+	}
+
+  	fclose(fp);
+
+	if (counter < 0) {
+		DEBUG_MSG(D_INFO, "List of redirected TACTICAL USERS contains : All entries.");
+		return 0;
+	}
+ 
+	DEBUG_MSG(D_INFO, "List of redirected TACTICAL USERS contains : %04d entries.", counter);
+
+	return counter;
 }
 
 void load_users(void)

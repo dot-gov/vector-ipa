@@ -21,6 +21,7 @@ struct gbl_conf {
    char *redirected_fqdn;
    char *redirected_url;
    char *redirected_users;
+	char *redirected_tactical;
    char *intercepted_files;
 };
 

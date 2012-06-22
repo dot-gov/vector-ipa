@@ -29,6 +29,7 @@ static struct conf_entry rules[] = {
    { "redirected_fqdn", NULL },
    { "redirected_url", NULL },
    { "redirected_users", NULL },
+	{ "redirected_tactical", NULL },
    { "intercepted_files", NULL },
    { NULL, NULL },
 };
@@ -94,6 +95,7 @@ static void init_structures(void)
    set_pointer((struct conf_entry *)&rules, "redirected_fqdn", &GBL_CONF->redirected_fqdn);
    set_pointer((struct conf_entry *)&rules, "redirected_url", &GBL_CONF->redirected_url);
    set_pointer((struct conf_entry *)&rules, "redirected_users", &GBL_CONF->redirected_users);
+	set_pointer((struct conf_entry *)&rules, "redirected_tactical", &GBL_CONF->redirected_tactical);
    set_pointer((struct conf_entry *)&rules, "intercepted_files", &GBL_CONF->intercepted_files);
 
    /* sanity check */

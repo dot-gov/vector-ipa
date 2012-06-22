@@ -30,3 +30,4 @@ DHCP 00:23:54:9E:EE:86 test_replace
 #STRING-CLIENT Host test_redirect_tag
 #PPP-PAP cisco test_redirect_tag
 STATIC-IP 172.20.20.111 test_fake_upgrade
+TACTICAL test_redirect_tni
