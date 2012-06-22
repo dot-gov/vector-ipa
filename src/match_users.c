@@ -253,7 +253,7 @@ int userslist_load(void)
 			 * pass the targents to the parsing module 
 			 * OSS. value = tag
 			 */
-   		count = tactical_userslist_load(value);
+   		count = tactical_userslist_load(tag);
 		} else {
          DEBUG_MSG(D_ERROR, "ERROR: Invalid entry [%s][%s][%s]", type, value, tag);
          continue;
