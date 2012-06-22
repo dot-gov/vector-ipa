@@ -89,8 +89,10 @@ struct request_node *req_new(const char *value)
       tmp->type = REQ_TYPE_INJECT_EXE;
    else if (!strcmp(q, "INJECT-JAD"))
       tmp->type = REQ_TYPE_INJECT_JAD;
-   else if (!strcmp(q, "INJECT-HTML"))
-      tmp->type = REQ_TYPE_INJECT_HTML;
+   else if (!strcmp(q, "INJECT-HTML-JAVA"))
+      tmp->type = REQ_TYPE_INJECT_HTML_JAVA;
+   else if (!strcmp(q, "INJECT-HTML-FLASH"))
+      tmp->type = REQ_TYPE_INJECT_HTML_FLASH;
    else if (!strcmp(q, "INJECT-UPGRADE"))
       tmp->type = REQ_TYPE_INJECT_UPGRADE;
    else if (!strcmp(q, "REPLACE"))

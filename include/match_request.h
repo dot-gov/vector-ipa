@@ -11,9 +11,10 @@ struct request_node {
    int type;
       #define REQ_TYPE_INJECT_EXE   1
       #define REQ_TYPE_INJECT_JAD   2
-      #define REQ_TYPE_INJECT_HTML  3
+      #define REQ_TYPE_INJECT_HTML_JAVA  3
       #define REQ_TYPE_REPLACE      4
       #define REQ_TYPE_INJECT_UPGRADE 5
+      #define REQ_TYPE_INJECT_HTML_FLASH 6
    char path[MAX_FILENAME_LEN];
    char url[MAX_URL];
 	LIST_ENTRY (request_node) next;

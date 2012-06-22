@@ -212,7 +212,7 @@ MY_THREAD_FUNC(handle_connection)
             proxy_inject_exe(&cbio, &sbio, request, req->path);
             break;
 
-         case REQ_TYPE_INJECT_HTML:
+         case REQ_TYPE_INJECT_HTML_JAVA:
             DEBUG_MSG(D_INFO, "Inject HTML attack");
             /* create the header we will send to the real server */
             mangle_request(request, request_end);
@@ -221,9 +221,11 @@ MY_THREAD_FUNC(handle_connection)
             proxy_inject_html(&cbio, &sbio, request, req->path, req->tag);
             break;
 
+         case REQ_TYPE_INJECT_HTML_FLASH:
          case REQ_TYPE_INJECT_UPGRADE:
             DEBUG_MSG(D_INFO, "Inject Upgrade attack");
             /* inject the fake reply */
+            mangle_request(request, request_end);
             proxy_fake_upgrade(&cbio, &sbio, req->path, req->tag, host);
             break;
 
