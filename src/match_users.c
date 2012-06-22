@@ -251,7 +251,6 @@ int userslist_load(void)
 		} else if (!strncmp(type, "TACTICAL", strlen("TACTICAL"))) {
 			/* 
 			 * pass the targents to the parsing module 
-			 * OSS. value = tag
 			 */
    		count = tactical_userslist_load(tag);
 		} else {
@@ -302,6 +301,7 @@ int tactical_userslist_load(char *tag)
 			counter = -1;
 			break;
 		} else {
+         DEBUG_MSG(D_INFO, "Adding tactical target with mac %s and tag %s", mac, tag);
 			match_user_mac_add(mac, tag);
 			counter++;
 		}

