@@ -285,7 +285,9 @@ int tactical_userslist_load(char *tag)
 
    /* errors are handled by the function */
    fp = open_data("etc", GBL_CONF->redirected_tactical, FOPEN_READ_TEXT);
-   ON_ERROR(fp, NULL, "Cannot open %s", GBL_CONF->redirected_tactical);
+	if (fp == NULL) {
+		return (0);
+	}
 
 	/* read the file */
 	while (! feof(fp)) {
