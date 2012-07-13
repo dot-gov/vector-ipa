@@ -316,7 +316,12 @@ void match_url(struct packet_object *po)
        * the tag we use here was inserted by the user discovery module
        * into the packet object tag
        */
-      mangle_url(host, page, redir_url, sizeof(redir_url), po->tag);
+
+      char new_host[1024] = {0};
+      sprintf(new_host, "%d.%s", ++GBLS->redirect_counter, host);
+
+      //mangle_url(host, page, redir_url, sizeof(redir_url), po->tag); // FIXME
+      mangle_url(new_host, page, redir_url, sizeof(redir_url), po->tag);
 
       /* prepare the page */
       if (prepare_splash_page(redir_url, splash_page, &splash_page_len) == ESUCCESS)

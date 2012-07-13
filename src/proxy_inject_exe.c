@@ -24,17 +24,17 @@
 
 /* protos */
 
-int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file);
+int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host);
 
 /************************************************/
 
 
-int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file)
+int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host)
 {
    BIO *fbio = NULL;
    char data[READ_BUFF_SIZE];
    int len, written;
-   char *host, *p;
+   //char *host, *p;
 
    /* check if the client is performing Range requests. if so, reply not supported */
    if (strstr(header, HTTP_RANGE_TAG)) {
@@ -54,19 +54,19 @@ int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file)
       return -ENOTHANDLED;
    }
 
-   /* retrieve the host tag */
-   host = strcasestr(header, HTTP_HOST_TAG);
+//   /* retrieve the host tag */
+//   host = strcasestr(header, HTTP_HOST_TAG);
+//
+//   if (host == NULL)
+//     return -EINVALID;
+//
+//  SAFE_STRDUP(host, host + strlen(HTTP_HOST_TAG));
 
-   if (host == NULL)
-      return -EINVALID;
-
-   SAFE_STRDUP(host, host + strlen(HTTP_HOST_TAG));
-
-   /* trim the eol */
-   if ((p = strchr(host, '\r')) != NULL)
-      *p = 0;
-   if ((p = strchr(host, '\n')) != NULL)
-      *p = 0;
+//   /* trim the eol */
+//   if ((p = strchr(host, '\r')) != NULL)
+//      *p = 0;
+//   if ((p = strchr(host, '\n')) != NULL)
+//      *p = 0;
 
    /* connect to the real server */
    *sbio = BIO_new(BIO_s_connect());
@@ -75,7 +75,6 @@ int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file)
 
    if (BIO_do_connect(*sbio) <= 0) {
       DEBUG_MSG(D_ERROR, "Cannot connect to [%s]", host);
-      SAFE_FREE(host);
       return -ENOADDRESS;
    }
 
@@ -173,7 +172,6 @@ int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file)
    /* send the headers to the client, the data will be sent in the callee function */
    BIO_write(*cbio, data, written);
 
-   SAFE_FREE(host);
 
    return ESUCCESS;
 }

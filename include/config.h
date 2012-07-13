@@ -5,7 +5,7 @@
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
 /* debug support */
-#define DEBUG 1
+/* #undef DEBUG */
 
 /* gcc version */
 #define GCC_VERSION "4.5.3"

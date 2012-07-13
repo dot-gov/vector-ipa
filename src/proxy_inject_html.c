@@ -23,33 +23,33 @@
 
 void sanitize_header(char *header);
 int fix_content_lenght(char *header, int len);
-int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag);
+int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host);
 BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host);
 
 /************************************************/
 
-int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag)
+int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host)
 {
    BIO *fbio = NULL;
    char *data;
    int data_len;
    int len, written;
-   char *host, *p;
+//   char *host, *p;
    int inject_len;
 
-   /* retrieve the host tag */
-   host = strcasestr(header, HTTP_HOST_TAG);
+//   /* retrieve the host tag */
+//   host = strcasestr(header, HTTP_HOST_TAG);
 
-   if (host == NULL)
-      return -EINVALID;
+//  if (host == NULL)
+//      return -EINVALID;
 
-   SAFE_STRDUP(host, host + strlen(HTTP_HOST_TAG));
+//   SAFE_STRDUP(host, host + strlen(HTTP_HOST_TAG));
 
-   /* trim the eol */
-   if ((p = strchr(host, '\r')) != NULL)
-      *p = 0;
-   if ((p = strchr(host, '\n')) != NULL)
-      *p = 0;
+//   /* trim the eol */
+//   if ((p = strchr(host, '\r')) != NULL)
+//      *p = 0;
+//   if ((p = strchr(host, '\n')) != NULL)
+//      *p = 0;
 
    /* connect to the real server */
    *sbio = BIO_new(BIO_s_connect());
@@ -58,7 +58,6 @@ int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *ta
 
    if (BIO_do_connect(*sbio) <= 0) {
       DEBUG_MSG(D_ERROR, "Cannot connect to [%s]", host);
-      SAFE_FREE(host);
       return -ENOADDRESS;
    }
 
@@ -130,7 +129,6 @@ int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *ta
    /* send the headers to the client, the data will be sent in the callee function */
    BIO_write(*cbio, data, data_len);
    
-   SAFE_FREE(host);
    SAFE_FREE(data);
    
    return ESUCCESS;
