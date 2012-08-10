@@ -344,6 +344,10 @@ void rnc_handleproto(BIO *ssl)
 
    ssl_proto_write(ssl, &pheader, sizeof(pheader));
 
+
+   fclose(open_data("tmp", "conf_received", FOPEN_WRITE_TEXT));
+
+
    /* disconnect */
 }
 

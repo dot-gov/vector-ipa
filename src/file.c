@@ -51,6 +51,9 @@ char * get_full_path(const char *dir, const char *file)
    if (!strcmp(dir, "vectors"))
 	   snprintf(filename, len, "%s/%s/%s", INSTALL_SYSCONFDIR, dir, file);
 
+   if (!strcmp(dir, "tmp"))
+      snprintf(filename, len, "/tmp/%s", file);
+
    DEBUG_MSG(D_VERBOSE, "get_full_path -- [%s] %s", dir, filename);
 
    return filename;
