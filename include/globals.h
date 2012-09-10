@@ -114,6 +114,7 @@ struct globals {
    struct stats_env *stats;
    struct net_env *net;
    struct targets_env *targ;
+   size_t redirect_counter;
 };
 
 struct globals *gbls;

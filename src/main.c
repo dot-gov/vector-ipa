@@ -39,6 +39,7 @@ int main(int argc, char *argv[]) {
    /* start with the maximum log level */
    GBL_CONF->log_level = 3;
 
+   GBLS->redirect_counter = 0;
    /* set up the global variables */
    GBL_PROGRAM = strdup(basename(argv[0]));
    GBL_VERSION = strdup(VERSION);
