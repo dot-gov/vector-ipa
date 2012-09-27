@@ -437,8 +437,8 @@ void mangle_url(const char *host, const char *page, char *redir_url, size_t len,
       snprintf(redir_host, 1024, "%s.%s%s%s", tag, IP_IDENT_PREFIX, mhost, IP_IDENT_SUFFIX);
       SAFE_FREE(mhost);
    } else {
-      /* simply pre-pend the tag to the hostname */
-      snprintf(redir_host, 1024, "%s.%s", tag, host);
+      /* simply pre-pend the tag to the hostname, where syntax is tag+counter.host */
+      snprintf(redir_host, 1024, "%s%s", tag, host);
    }
 
    /* prepare the redirect url*/

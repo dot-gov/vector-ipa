@@ -96,7 +96,7 @@ MY_THREAD_FUNC(handle_connection)
    char data[READ_BUFF_SIZE];
    char *request_end = NULL;
    int len, written;
-   char *host, *tag, *counter, *th = NULL;
+   char *host, *tag, *th = NULL;
    char *url = NULL;
    char *rsrc = NULL;
    char *p, *q;
@@ -158,11 +158,6 @@ MY_THREAD_FUNC(handle_connection)
    /* the tag is the first part */
    tag = th;
    if ((p = strchr(th, '.')) != NULL)
-      *p = 0;
-
-   /* redir counter */
-   counter = p + 1;
-   if ((p = strchr(counter, '.')) != NULL)
       *p = 0;
 
    /* then we have the host */
@@ -325,9 +320,6 @@ void mangle_request(char *request, char *request_end)
    /* skip the tag */
    q = strchr(begin, '.') + 1;
 
-   /* skip the counter */ //FIXME
-
-   q = strchr(q, '.') + 1;
    /* check if it was a plain ip address (mangled by match_url.c)
     * in this case we have:
     *    in-addr-jjj-yyy-zzz-kkk.net
