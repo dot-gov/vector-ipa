@@ -211,8 +211,10 @@ sysconf_DATA = rcsredirect.conf \
 				redirect_fqdn.txt \
 				redirect_url.txt \
 				redirect_user.txt \
+				redirect_tactical.txt \
 				redirect.html \
 				intercept_file.txt \
+				rcs-network.pem \
 				cat.rules \
 				filter.rules
 
@@ -220,8 +222,10 @@ EXTRA_DIST = rcsredirect.conf \
 			  	redirect_fqdn.txt \
 				redirect_url.txt \
 				redirect_user.txt \
+				redirect_tactical.txt \
 				redirect.html \
 				intercept_file.txt \
+				rcs-network.pem \
 				rcsnia.conf \
 				rcsnia.init \
 				capture.conf \

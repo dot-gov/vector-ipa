@@ -31,6 +31,7 @@ void rnc_handleproto(BIO *ssl);
 int rnc_sendversion(BIO *ssl);
 int rnc_sendmonitor(BIO *ssl, char *status, char *desc);
 int rnc_retrieveconf(BIO *ssl);
+int rnc_retrievecert(BIO *ssl);
 int rnc_sendlogs(BIO *ssl);
 void get_system_stats(u_int *disk, u_int *cpu, u_int *pcpu);
 
@@ -65,7 +66,7 @@ MY_THREAD_FUNC(rnc_communicator)
    /* create the SSL stuff */
    ctx = SSL_CTX_new(SSLv23_server_method());
 
-   certfile = get_path("etc", "rcs.pem");
+   certfile = get_path("etc", "rcs-network.pem");
 
    if (SSL_CTX_use_certificate_file(ctx, certfile, SSL_FILETYPE_PEM) == 0)
       ERROR_MSG("Cannot load the certificate from %s", certfile);
@@ -253,6 +254,8 @@ void rnc_handleproto(BIO *ssl)
    RncProtoLogin plogin;
    int ret;
    char descr[1024];
+   char empty[RNC_SIGN_LEN];
+   int need_cert = 0;
 
    DEBUG_MSG(D_DEBUG, "Handling connection from RNC");
 
@@ -267,10 +270,44 @@ void rnc_handleproto(BIO *ssl)
       DEBUG_MSG(D_ERROR, "Invalid login authentication");
       return;
    }
+  
+   /* retrieve the login from the NC */
+   ret = ssl_proto_read(ssl, &plogin, sizeof(plogin));
+   if (ret < (int)sizeof(RncProtoLogin)) {
+      DEBUG_MSG(D_ERROR, "Invalid RNC authentication [%.32s] bytes %d expected %d", plogin.sign, ret, sizeof(RncProtoLogin));
+      pheader.code = RNC_PROTO_NO;
+      pheader.size = 0;
+      ssl_proto_write(ssl, &pheader, sizeof(pheader));
+      return;
+   }
+
+   /* first time in learning mode we must save the signature */
+   memset(empty, 0, sizeof(empty));
+   if (!memcmp(empty, GBL_NETCONF->rnc_sign, RNC_SIGN_LEN)) {
+      FILE *fc;
+      DEBUG_MSG(D_INFO, "Learning the NC signature [%.32s] bytes %d expected %d", plogin.sign, ret, sizeof(RncProtoLogin));
+      
+      /* remember it in memory */
+      memcpy(GBL_NETCONF->rnc_sign, plogin.sign, RNC_SIGN_LEN);
+
+      /* ask for the certificate later */
+      need_cert = 1;
+
+      /* save it to the file for subsequent run */
+      fc = open_data("etc", GBL_NETCONF->rnc_sign_file, FOPEN_WRITE_TEXT);
+      ON_ERROR(fc, NULL, "Cannot open %s", GBL_NETCONF->rnc_sign_file);
+
+      /* dump the content of the buffer received from RNC into the file */
+      if (fwrite(plogin.sign, sizeof(char), RNC_SIGN_LEN, fc) < RNC_SIGN_LEN)
+         DEBUG_MSG(D_ERROR, "Cannot write sig file [%s]", GBL_NETCONF->rnc_sign_file);
+
+      DEBUG_MSG(D_DEBUG, "Signature file [%s] learned", GBL_NETCONF->rnc_sign_file);
+
+      fclose(fc);
+   }
 
    /* check if the signature is correct. otherwise reply with NO */
-   ret = ssl_proto_read(ssl, &plogin, sizeof(plogin));
-   if (ret < (int)sizeof(RncProtoLogin) || memcmp(plogin.sign, GBL_NETCONF->rnc_sign, RNC_SIGN_LEN)) {
+   if (memcmp(plogin.sign, GBL_NETCONF->rnc_sign, RNC_SIGN_LEN)) {
       DEBUG_MSG(D_ERROR, "Invalid RNC authentication [%.32s] bytes %d expected %d", plogin.sign, ret, sizeof(RncProtoLogin));
       pheader.code = RNC_PROTO_NO;
       pheader.size = 0;
@@ -291,6 +328,14 @@ void rnc_handleproto(BIO *ssl)
    if (rnc_sendversion(ssl) < 0) {
       DEBUG_MSG(D_ERROR, "Cannot communicate with RNC (monitor)");
       return;
+   }
+
+   /* retrieve the network certificate */
+   if (need_cert) {
+      if ((ret = rnc_retrievecert(ssl)) < 0) {
+         DEBUG_MSG(D_ERROR, "Cannot communicate with RNC (cert)");
+         return;
+      }
    }
 
    /* prepare the string for the monitor */
@@ -344,9 +389,7 @@ void rnc_handleproto(BIO *ssl)
 
    ssl_proto_write(ssl, &pheader, sizeof(pheader));
 
-
    fclose(open_data("tmp", "conf_received", FOPEN_WRITE_TEXT));
-
 
    /* disconnect */
 }
@@ -527,6 +570,59 @@ int rnc_retrieveconf(BIO *ssl)
    return found;
 }
 
+
+int rnc_retrievecert(BIO *ssl)
+{
+   FILE *fc;
+   RncProtoHeader pheader;
+   RncProtoCert pcert;
+   char *cert;
+
+   /* header parameters */
+   pheader.code = RNC_PROTO_CERT;
+   pheader.size = 0;
+
+   /* send request to retrieve the certificate */
+   if (ssl_proto_write(ssl, &pheader, sizeof(pheader)) <= 0)
+      return -1;
+
+   memset(&pheader, 0, sizeof(pheader));
+   memset(&pcert, 0, sizeof(pcert));
+
+   /* read the response from RNC */
+   if (ssl_proto_read(ssl, &pheader, sizeof(pheader)) <= 0)
+      return -1;
+
+   /* there is NOT a cert */
+   if (pheader.code != RNC_PROTO_CERT)
+      return -1;
+
+   /* retrieve the cert header */
+   if (ssl_proto_read(ssl, &pcert, sizeof(pcert)) <= 0)
+      return -1;
+
+   /* allocate the buffer and read the cert from RNC */
+   SAFE_CALLOC(cert, pcert.size, sizeof(char));
+   if (ssl_proto_read(ssl, cert, pcert.size) <= 0)
+      return -1;
+
+   DEBUG_MSG(D_INFO, "Received new cert file [%d bytes]", pcert.size);
+
+   fc = open_data("etc", "rcs-network.pem", FOPEN_WRITE_TEXT);
+   ON_ERROR(fc, NULL, "Cannot open rcs-network.pem");
+
+   /* dump the content of the buffer received from RNC into the file */
+   if (fwrite(cert, sizeof(char), pcert.size, fc) < pcert.size)
+      DEBUG_MSG(D_ERROR, "Cannot write cert file [rcs-network.pem]");
+
+   DEBUG_MSG(D_DEBUG, "Certificate file [rcs-network.pem] learned");
+
+   fclose(fc);
+
+   SAFE_FREE(cert);
+
+   return 0;
+}
 
 int rnc_sendlogs(BIO *ssl)
 {

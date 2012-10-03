@@ -33,6 +33,10 @@ typedef struct _RncProtoConfig {
    u_int size;
 } RncProtoConfig;
 
+typedef struct _RncProtoCert {
+   u_int size;
+} RncProtoCert;
+
 /* under MACOS the tm struct has two additional fields, use this instead */
 struct mytm {
    int   tm_sec;     /* seconds after the minute [0-60] */
@@ -65,6 +69,8 @@ typedef struct _RncProtoLog {
 #define RNC_PROTO_CONF     0x000F0006  // Chiede se c'e' una nuova configurazione
 #define RNC_PROTO_LOG      0x000F0007  // Invia log
 #define RNC_PROTO_VERSION  0x000F0008  // Invia la versione del componente
+#define RNC_PROTO_UPGRADE  0x000F0009  // Auto upgrade
+#define RNC_PROTO_CERT     0x000F000A  // Richiede il certificato network
 
 /* protos */
 extern void netconf_start(void);

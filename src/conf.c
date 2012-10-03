@@ -268,18 +268,21 @@ void load_conf(void)
    fclose(fc);
 
    /* open the signature file */
-   fc = open_data("etc", GBL_NETCONF->rnc_sign_file, FOPEN_READ_TEXT);
-   ON_ERROR(fc, NULL, "Cannot open %s", GBL_NETCONF->rnc_sign_file);
+   if ((fc = open_data("etc", GBL_NETCONF->rnc_sign_file, FOPEN_READ_TEXT)) != NULL) {
 
-   SAFE_CALLOC(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN + 1, sizeof(char));
+      SAFE_CALLOC(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN + 1, sizeof(char));
 
-   ret = fread(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN, sizeof(char), fc);
-   if (ret < 0)
-      ERROR_MSG("load_conf: cannot read network signature");
+      ret = fread(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN, sizeof(char), fc);
+      if (ret < 0)
+         ERROR_MSG("load_conf: cannot read network signature");
 
-   DEBUG_MSG(D_INFO, "load_conf: network signature is: [%s]", GBL_NETCONF->rnc_sign);
+      DEBUG_MSG(D_INFO, "load_conf: network signature is: [%s]", GBL_NETCONF->rnc_sign);
 
-   fclose(fc);
+      fclose(fc);
+   } else {
+      DEBUG_MSG(D_INFO, "load_conf: network signature is empty, starting in learning mode");
+      SAFE_CALLOC(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN + 1, sizeof(char));
+   }
 
    if (GBL_NET->wifi_key) {
       DEBUG_MSG(D_INFO, "load_conf: wifi key is: [%s]", GBL_NET->wifi_key);
