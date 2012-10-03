@@ -169,7 +169,7 @@ int userslist_load(void)
    char line[512];
    int counter = 0, count = 0;
    char *p, *q;
-   char *type, *value, *tag;
+   char *type, *value, *tag = NULL;
 
    DEBUG_MSG(D_INFO, "load_users: %s", GBL_CONF->redirected_users);
 
@@ -212,10 +212,12 @@ int userslist_load(void)
       value = p + 1;
 
       /* null terminate at the space */
-      if ((p = strchr(value, ' ')))
+      if ((p = strchr(value, ' '))) {
     	  *p = '\0';
-
-      tag = p + 1;
+         tag = p + 1;
+      } else {
+         ERROR_MSG("Invalid entry [%s][%s]", type, value);
+      }
 
       /* check the user's type */
       if (!strncmp(type, "STATIC-IP", strlen("STATIC-IP"))) {
@@ -250,7 +252,7 @@ int userslist_load(void)
          match_user_dhcp_add(value, tag);
 		} else if (!strncmp(type, "TACTICAL", strlen("TACTICAL"))) {
 			/* 
-			 * pass the targents to the parsing module 
+			 * pass the targets to the parsing module 
 			 */
    		count = tactical_userslist_load(tag);
 		} else {
