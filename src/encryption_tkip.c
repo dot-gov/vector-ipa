@@ -226,7 +226,7 @@ static int tkip_decrypt(u_char *decbuf, size_t len, u_int8 *wep_seed)
     * at the end of the packet there is a CRC check
     */
    if (CRC_checksum(decbuf, len + WEP_CRC_LEN, CRC_INIT) != CRC_RESULT) {
-      DEBUG_MSG(D_VERBOSE, "WEP: invalid key, the packet was skipped\n");
+      //DEBUG_MSG(D_VERBOSE, "WEP: invalid key, the packet was skipped\n");
       return -ENOTHANDLED;
    }
 

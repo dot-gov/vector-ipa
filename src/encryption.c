@@ -69,7 +69,7 @@ int wep_decrypt(u_char *buf, size_t len, u_char *wkey, size_t wlen)
 
    /* sanity check on the key index */
    if (wep->key * 5 > (int)(MAX_WKEY_LEN - wlen)) {
-      DEBUG_MSG(D_VERBOSE, "WEP: invalid key index, the packet was skipped");
+      //DEBUG_MSG(D_VERBOSE, "WEP: invalid key index, the packet was skipped");
       return -ENOTHANDLED;
    }
 
