@@ -98,7 +98,7 @@ int wep_decrypt(u_char *buf, size_t len, u_char *wkey, size_t wlen)
     * at the end of the packet there is a CRC check
     */
    if (CRC_checksum(decbuf, len + WEP_CRC_LEN, CRC_INIT) != CRC_RESULT) {
-      DEBUG_MSG(D_VERBOSE, "WEP decryption failed, the packet was skipped");
+      //DEBUG_MSG(D_VERBOSE, "WEP decryption failed, the packet was skipped");
       return -ENOTHANDLED;
    }
 

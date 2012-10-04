@@ -107,7 +107,7 @@ int wpa_tkip_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
 
    /* decrypt the packet */
    if (tkip_decrypt(decbuf, len - WEP_CRC_LEN, wep_seed) != 0) {
-      DEBUG_MSG(D_VERBOSE, "WPA (TKIP) decryption failed, packet was skipped");
+      //DEBUG_MSG(D_VERBOSE, "WPA (TKIP) decryption failed, packet was skipped");
       return -ENOTHANDLED;
    }
 

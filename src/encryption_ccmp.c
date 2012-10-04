@@ -84,7 +84,7 @@ int wpa_ccmp_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
 
    /* decrypt the packet */
    if (ccmp_decrypt(decbuf, B0, B, A, mic, len, &aes_ctx) != 0) {
-      DEBUG_MSG(D_VERBOSE, "WPA (CCMP) decryption failed, packet was skipped");
+      //DEBUG_MSG(D_VERBOSE, "WPA (CCMP) decryption failed, packet was skipped");
       return -ENOTHANDLED;
    }
 
