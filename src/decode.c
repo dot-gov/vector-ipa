@@ -74,7 +74,7 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
        * too small we have to skip the packet (is not interesting for us)
        */
       if (GBL_PCAP->snaplen <= datalen) {
-         USER_MSG("Truncated packet detected, skipping...\n");
+         //USER_MSG("Truncated packet detected, skipping...\n");
          return;
       }
 
