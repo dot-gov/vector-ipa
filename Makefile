@@ -134,7 +134,7 @@ AUTOCONF = ${SHELL} /root/devel/vector-nia/missing --run autoconf
 AUTOHEADER = ${SHELL} /root/devel/vector-nia/missing --run autoheader
 AUTOMAKE = ${SHELL} /root/devel/vector-nia/missing --run automake-1.11
 AWK = gawk
-BUILD_CFLAGS = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -g -ggdb -Wmissing-prototypes -Wno-uninitialized -Werror -Wformat-security -Wsign-compare -Wall -I/usr/include/pcap   -I../../RCSStreamingMelter/include
+BUILD_CFLAGS = -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing -O2 -funroll-loops -fomit-frame-pointer -Wall -I/usr/include/pcap   -I../../RCSStreamingMelter/include
 BUILD_LIBS = -lpcap -lresolv -lpthread  -nopie -lpcap -lnet -lssl -lcrypto
 CC = gcc
 CCDEPMODE = depmode=gcc3
@@ -160,7 +160,7 @@ LDFLAGS =  -pthread
 LIBOBJS = 
 LIBS = -lpcap -lresolv -lpthread 
 LTLIBOBJS = 
-MAINT = 
+MAINT = #
 MAKEINFO = ${SHELL} /root/devel/vector-nia/missing --run makeinfo
 MELTER_LIBS = -L../../RCSStreamingMelter/lib -lmelt -lstdc++ -L../../RCSStreamingMelter/deps/beaengine/lib -lBeaEngine_s -L../../RCSStreamingMelter/deps/asmjit/lib -lAsmJit -lboost_filesystem-mt -lboost_regex-mt -lboost_program_options-mt -lboost_system-mt
 MKDIR_P = /bin/mkdir -p
@@ -182,7 +182,7 @@ SHELL = /bin/sh
 SSLINC = 
 SSLLIB = -lssl -lcrypto
 STRIP = 
-VERSION = 2012.09.12
+VERSION = 2012.10.29
 abs_builddir = /root/devel/vector-nia
 abs_srcdir = /root/devel/vector-nia
 abs_top_builddir = /root/devel/vector-nia
@@ -204,7 +204,7 @@ datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
-exec_prefix = /usr/local
+exec_prefix = /rcsnia
 host = i686-pc-linux-gnu
 host_alias = 
 host_cpu = i686
@@ -222,7 +222,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /usr/local
+prefix = /rcsnia
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin
@@ -247,7 +247,7 @@ all: all-recursive
 .SUFFIXES:
 am--refresh: Makefile
 	@:
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/Makefile.am.common $(am__configure_deps)
+$(srcdir)/Makefile.in: # $(srcdir)/Makefile.am $(top_srcdir)/Makefile.am.common $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -275,9 +275,9 @@ $(top_srcdir)/Makefile.am.common:
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
 
-$(top_srcdir)/configure:  $(am__configure_deps)
+$(top_srcdir)/configure: # $(am__configure_deps)
 	$(am__cd) $(srcdir) && $(AUTOCONF)
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
+$(ACLOCAL_M4): # $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
 
