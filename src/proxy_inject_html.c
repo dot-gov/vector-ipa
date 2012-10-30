@@ -139,24 +139,24 @@ BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host)
 {
    BIO* bio = NULL;
    FILE *f;
-   char cer_file[strlen(file) + strlen(".cer") + 1];
+   //char cer_file[strlen(file) + strlen(".cer") + 1];
    char html_file[strlen(file) + strlen(".html") + 1];
    char jar_file[strlen(file) + strlen(".jar") + 1];
    char *html_to_inject;
    size_t html_to_inject_len;
    struct bio_inject_setup bis;
 
-   sprintf(cer_file, "%s.cer", file);
+   //sprintf(cer_file, "%s.cer", file);
    sprintf(html_file, "%s.html", file);
    sprintf(jar_file, "%s.jar", file);
 
    /* check that we have the certificate file */
-   f = open_data("vectors", cer_file, "r");
+   /*f = open_data("vectors", cer_file, "r");
    if (f == NULL)
       return BIO_new(BIO_f_null());
 
    fclose(f);
-
+   */
    /* check if we have everything in place */
    f = open_data("vectors", jar_file, "r");
    if (f == NULL)
