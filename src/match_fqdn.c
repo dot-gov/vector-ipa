@@ -88,11 +88,11 @@ tn_t *tn_init(void)
 int tn_populate(tn_t *node, const char *string, char type)
 {
    char c = toupper(string[0]);
-   if (c == '\0')
+   if (c == '\0' || c < DISPLACE)
       return 0; // done with string
 
    int index = c - DISPLACE;
-
+   
    node->type = type;
 
    if (node->next[index] == NULL)
@@ -114,6 +114,10 @@ int tn_find(tn_t *node, const char *string, char* type)
 
    if (node)
       *type = node->type;
+
+   if (c < DISPLACE) {
+     return -1;
+   }
 
    int index = c - DISPLACE;
 
