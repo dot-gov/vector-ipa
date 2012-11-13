@@ -98,7 +98,7 @@ void capture_init(void)
    }
 
    /* set the snaplen to maximum */
-   GBL_PCAP->snaplen = BUFSIZ; /* 1024 is best of 2048 because else we read truncated pkts. */
+   GBL_PCAP->snaplen = 2048; 
 
    /* open the interface from GBL_OPTIONS (user specified) */
    if (GBL_OPTIONS->read) {

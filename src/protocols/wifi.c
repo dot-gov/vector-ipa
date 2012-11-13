@@ -191,6 +191,10 @@ FUNC_DECODER(decode_wifi)
       wep = (struct wep_header *)wifi_end;
       DECODED_LEN += sizeof(struct wep_header);
 
+      if ((DECODE_DATALEN - DECODED_LEN) <= 0) {
+         return NULL;
+      }
+
       /* decrypt the packet */
       if (wep_decrypt((u_char *)wep, DECODE_DATALEN - DECODED_LEN, GBL_NET->wkey, GBL_NET->wkey_len) != ESUCCESS)
          return NULL;
@@ -217,6 +221,10 @@ FUNC_DECODER(decode_wifi)
          /* get the WPA header (CCMP or TKIP initialization vector) */
          wpa = (struct wpa_header *)wifi_end;
          DECODED_LEN += sizeof(struct wpa_header);
+
+         if ((DECODE_DATALEN - DECODED_LEN) <= 0) {
+            return NULL;
+         }
 
          /* decrypt the packet */
          if (wpa_decrypt((u_char *)wifi, (u_char *)wpa, DECODE_DATALEN - DECODED_LEN, sa) != ESUCCESS) {
