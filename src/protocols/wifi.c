@@ -191,7 +191,7 @@ FUNC_DECODER(decode_wifi)
       wep = (struct wep_header *)wifi_end;
       DECODED_LEN += sizeof(struct wep_header);
 
-      if ((DECODE_DATALEN - DECODED_LEN) <= 0) {
+      if (DECODED_LEN >= DECODE_DATALEN) {
          return NULL;
       }
 
@@ -222,7 +222,7 @@ FUNC_DECODER(decode_wifi)
          wpa = (struct wpa_header *)wifi_end;
          DECODED_LEN += sizeof(struct wpa_header);
 
-         if ((DECODE_DATALEN - DECODED_LEN) <= 0) {
+         if (DECODED_LEN >= DECODE_DATALEN) {
             return NULL;
          }
 
