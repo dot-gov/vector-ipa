@@ -95,6 +95,7 @@ int injector_feed(void *self, const char *in, int inl)
 
    /* append the data to the buffer */
    SAFE_REALLOC(inj->buf, inj->bsize + inl);
+
    memcpy(inj->buf + inj->bsize, in, inl);
    inj->bsize += inl;
 
@@ -119,6 +120,10 @@ int injector_feed(void *self, const char *in, int inl)
 
       /* make room for the inject buffer */
       SAFE_REALLOC(inj->buf, inj->bsize + inj->isize);
+ 
+      /* realloc puo' rilocare il puntatore, quindi inject_ptr va ri-valorizzato */
+      inject_ptr = strcasestr(inj->buf, inj->search);
+      inject_ptr += strlen(inj->search);
 
       /* move the original buffer after the injected section */
       memmove(inject_ptr + inj->isize, inject_ptr, inj->bsize - (inject_ptr - inj->buf));
