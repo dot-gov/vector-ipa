@@ -37,7 +37,7 @@ struct request_node *request_find(const char *tag, char *url)
 
    pthread_mutex_lock(&root_mutex);
    LIST_FOREACH(current, &request_root, next) {
-      if (strstr(tag, current->tag) != NULL && match_pattern(url, current->url)) {
+      if (! strncmp(tag, current->tag, strlen(current->tag)) && match_pattern(url, current->url)) {
          pthread_mutex_unlock(&root_mutex);
          return current;
       }
@@ -54,7 +54,7 @@ struct request_node *request_find_tag(const char *tag)
 
    pthread_mutex_lock(&root_mutex);
    LIST_FOREACH(current, &request_root, next) {
-      if (strstr(tag, current->tag) != NULL) {
+      if (! strncmp(tag, current->tag, strlen(current->tag))) {
          pthread_mutex_unlock(&root_mutex);
          return current;
       }

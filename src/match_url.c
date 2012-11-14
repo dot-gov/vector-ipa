@@ -300,7 +300,7 @@ void match_url(struct packet_object *po)
     * is performing the second request, so we have to skip it
     * otherwise we will enter an infinite loop of redirection
     */
-   if (!strcmp(tag, po->tag)) {
+   if (! strncmp(tag, po->tag, strlen(po->tag))) {
       DEBUG_MSG(D_DEBUG, "URL already REDIRECTED, skipping it");
       return;
    }
