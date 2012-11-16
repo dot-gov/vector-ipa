@@ -98,8 +98,8 @@ void capture_init(void)
    }
 
    /* set the snaplen to maximum */
-   GBL_PCAP->snaplen = 2048; 
-
+   GBL_PCAP->snaplen = UINT16_MAX; 
+ 
    /* open the interface from GBL_OPTIONS (user specified) */
    if (GBL_OPTIONS->read) {
       pd = pcap_open_offline(GBL_OPTIONS->pcapfile_in, pcap_errbuf);
