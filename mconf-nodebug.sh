@@ -19,7 +19,7 @@ fi
 
 echo "Configuring for maintainers mode..."
 echo 
-./configure --enable-maintainer-mode $* || exit 
+./configure --prefix=/opt/td-config --enable-maintainer-mode $* || exit 
 
 echo
 echo "Making the executable to be tested in the current directory"
