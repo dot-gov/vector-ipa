@@ -286,6 +286,7 @@ void capture_start(void)
       for (i = 1; i < DAG_PARALLEL_CORES; i++) {
          snprintf(name, 32, "hw_hash_%02d", i*2);
          my_thread_new(name, "HW balanced streamer", &capture_hw_balanced_stream, &i);
+         sleep(1);
       }
 
       /* register my self as the first streamer */
