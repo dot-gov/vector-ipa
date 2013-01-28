@@ -638,6 +638,7 @@ int rnc_retrieveupgrade(BIO *ssl)
 
       /* increment the number of received upgrade */
       found++;
+      break;
    }
 
    return found;
