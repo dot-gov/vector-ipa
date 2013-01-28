@@ -369,6 +369,7 @@ void rnc_handleproto(BIO *ssl)
    /* check if there are new configs */
    if (ret) {
       DEBUG_MSG(D_INFO, "Received new configuration(s), sending signal to reload them...");
+      fclose(open_data("tmp", "conf_received", FOPEN_WRITE_TEXT));
 
       /* reload the new config, the signal handler will reload them */
       kill(getpid(), SIGHUP);
@@ -388,8 +389,6 @@ void rnc_handleproto(BIO *ssl)
    pheader.size = 0;
 
    ssl_proto_write(ssl, &pheader, sizeof(pheader));
-
-   fclose(open_data("tmp", "conf_received", FOPEN_WRITE_TEXT));
 
    /* disconnect */
 }
