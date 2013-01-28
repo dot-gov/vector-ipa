@@ -33,6 +33,11 @@ typedef struct _RncProtoConfig {
    u_int size;
 } RncProtoConfig;
 
+typedef struct _RncProtoUpgrade {
+   char filename[MAX_PATH];
+   u_int size;
+} RncProtoUpgrade;
+
 typedef struct _RncProtoCert {
    u_int size;
 } RncProtoCert;
