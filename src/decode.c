@@ -63,6 +63,11 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
       return;
    }
 
+   /* bad packet */
+   if (pkthdr->caplen > pkthdr->len) {
+      return;
+   }
+
    if (GBL_OPTIONS->analyze) {
 
       data = (u_char *)pkt;
