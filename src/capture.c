@@ -20,8 +20,8 @@
 #endif
 
 #if defined(OS_LINUX)
-   /* LINUX needs 1 */
-   #define PCAP_TIMEOUT 50 
+   /* LINUX needs 1000 */
+   #define PCAP_TIMEOUT 1000 
    #include <net/if.h>
    #include <sys/ioctl.h>
 #elif defined(OS_SOLARIS)
