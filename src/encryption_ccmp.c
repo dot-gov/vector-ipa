@@ -49,6 +49,10 @@ int wpa_ccmp_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
    u_char decbuf[len];
    AES_KEY aes_ctx;
 
+   if (len > UINT16_MAX) {
+       return -ENOTHANDLED;
+   }
+
    /* init the AES with the decryption key from SA */
    AES_set_encrypt_key(sa.decryption_key, 128, &aes_ctx);
 

@@ -92,12 +92,12 @@ void __init wifi_init(void)
 
 FUNC_DECODER(decode_wifi)
 {
-   struct wifi_header *wifi;
-   struct llc_header *llc;
-   struct wep_header *wep;
-   struct wpa_header *wpa;
+   struct wifi_header *wifi = NULL;
+   struct llc_header *llc = NULL;
+   struct wep_header *wep = NULL;
+   struct wpa_header *wpa = NULL;
    FUNC_DECODER_PTR(next_decoder) = NULL;
-   u_char *wifi_end;
+   u_char *wifi_end = NULL;
    u_char enc_schema;
 
    DEBUG_MSG(D_EXCESSIVE, "%s", __FUNCTION__);

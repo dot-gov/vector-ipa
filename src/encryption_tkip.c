@@ -93,6 +93,10 @@ int wpa_tkip_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
    u_int8  wep_seed[TKIP_WEP_128_KEY_LEN];
    u_char decbuf[len];
 
+   if (len > UINT16_MAX) {
+       return -ENOTHANDLED;
+   }
+
    /* get the TKIP Sequence Counter */
    get_TSC(&TSC32, &TSC16, data);
 
