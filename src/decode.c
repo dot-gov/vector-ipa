@@ -42,7 +42,7 @@ void * get_decoder(u_int8 level, u_int32 type);
 void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_char *pkt)
 {
    FUNC_DECODER_PTR(packet_decoder);
-   struct packet_object po;
+   struct packet_object *po;
    int len;
    u_char *data;
    size_t datalen;
@@ -84,7 +84,7 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
       }
 
       /* initialize the packet object structure to be passed through decoders */
-      packet_create_object(&po, data, datalen, &pkthdr->ts);
+      po = packet_create_object(data, datalen, &pkthdr->ts);
 #if 0
       /* HOOK POINT: RECEIVED */
       hook_point(HOOK_RECEIVED, &po);
@@ -100,7 +100,7 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
        */
       packet_decoder = get_decoder(LINK_LAYER, GBL_PCAP->dlt);
       BUG_IF(packet_decoder == NULL);
-      packet_decoder(data, datalen, &len, &po);
+      packet_decoder(data, datalen, &len, po);
 
 #if 0
       /* HOOK POINT: DECODED */
@@ -108,7 +108,7 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
 #endif
 
       /* free the structure */
-      packet_destroy_object(&po);
+      packet_destroy_object(po);
    }
 
    /*
