@@ -91,7 +91,7 @@ int wpa_tkip_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
    u_int16 TSC16; /* TKIP Sequence Counter ( 1, 0 ) */
    u_int16 TTAK[TKIP_TTAK_LEN];
    u_int8  wep_seed[TKIP_WEP_128_KEY_LEN];
-   u_char decbuf[len];
+   u_char *decbuf = NULL;
 
    if (len > UINT16_MAX) {
        return -ENOTHANDLED;
@@ -106,12 +106,16 @@ int wpa_tkip_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
    tkip_mixing_phase1(TTAK, sa.decryption_key, mac + TKIP_TA_OFFSET, TSC32);
    tkip_mixing_phase2(wep_seed, sa.decryption_key, TTAK, TSC16);
 
+   SAFE_CALLOC(decbuf, len, sizeof(u_char));
+
    /* copy the encrypted data to the decryption buffer (skipping the wpa parameters) */
    memcpy(decbuf, data + sizeof(struct wpa_header), len);
 
    /* decrypt the packet */
    if (tkip_decrypt(decbuf, len - WEP_CRC_LEN, wep_seed) != 0) {
       //DEBUG_MSG(D_VERBOSE, "WPA (TKIP) decryption failed, packet was skipped");
+      SAFE_FREE(decbuf);
+
       return -ENOTHANDLED;
    }
 
@@ -121,6 +125,8 @@ int wpa_tkip_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
     * identical to a non-WPA one.
     */
    memcpy(data, decbuf, len);
+
+   SAFE_FREE(decbuf);
 
    /*
     * wipe out the remaining bytes at the end of the packets

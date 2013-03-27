@@ -46,7 +46,7 @@ int wpa_ccmp_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
    size_t data_len = len - sizeof(struct wpa_header);
    u_char AAD[AES_BLOCK_SIZE*2];
    u_char B0[AES_BLOCK_SIZE], A[AES_BLOCK_SIZE], B[AES_BLOCK_SIZE];
-   u_char decbuf[len];
+   u_char *decbuf = NULL;
    AES_KEY aes_ctx;
 
    if (len > UINT16_MAX) {
@@ -83,12 +83,16 @@ int wpa_ccmp_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
 
    XOR_BLOCK(mic, B, WPA_CCMP_TRAILER);
 
+   SAFE_CALLOC(decbuf, len, sizeof(u_char));
+
    /* copy the encrypted data to the decryption buffer (skipping the wpa parameters) */
    memcpy(decbuf, data + sizeof(struct wpa_header), len);
 
    /* decrypt the packet */
    if (ccmp_decrypt(decbuf, B0, B, A, mic, len, &aes_ctx) != 0) {
       //DEBUG_MSG(D_VERBOSE, "WPA (CCMP) decryption failed, packet was skipped");
+      SAFE_FREE(decbuf);
+
       return -ENOTHANDLED;
    }
 
@@ -98,6 +102,8 @@ int wpa_ccmp_decrypt(u_char *mac, u_char *data, size_t len, struct wpa_sa sa)
     * identical to a non-WPA one.
     */
    memcpy(data, decbuf, len);
+
+   SAFE_FREE(decbuf);
 
    /*
     * wipe out the remaining bytes at the end of the packets

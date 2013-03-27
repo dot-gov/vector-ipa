@@ -199,6 +199,10 @@ FUNC_DECODER(decode_wifi)
 	 return NULL;
       }
 
+      if ((DECODE_DATALEN - DECODED_LEN) <= sizeof(struct wep_header)) {
+         return NULL;
+      }
+
       /* decrypt the packet */
       if (wep_decrypt((u_char *)wep, DECODE_DATALEN - DECODED_LEN, GBL_NET->wkey, GBL_NET->wkey_len) != ESUCCESS)
          return NULL;
@@ -233,6 +237,10 @@ FUNC_DECODER(decode_wifi)
 	 if ((DECODE_DATALEN - DECODED_LEN) > UINT16_MAX) {
              return NULL;
 	 }
+
+         if ((DECODE_DATALEN - DECODED_LEN) <= sizeof(struct wpa_header)) {
+             return NULL;
+         }
 
          /* decrypt the packet */
          if (wpa_decrypt((u_char *)wifi, (u_char *)wpa, DECODE_DATALEN - DECODED_LEN, sa) != ESUCCESS) {

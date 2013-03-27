@@ -70,7 +70,10 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
 
    if (GBL_OPTIONS->analyze) {
 
-      data = (u_char *)pkt;
+      SAFE_CALLOC(data, pkthdr->caplen, sizeof(u_char));
+
+      memcpy(data, pkt, pkthdr->caplen);
+
       datalen = pkthdr->caplen;
 
       /*
@@ -106,6 +109,8 @@ void decode_captured(u_char *param, const struct pcap_pkthdr *pkthdr, const u_ch
       /* HOOK POINT: DECODED */
       hook_point(HOOK_DECODED, &po);
 #endif
+
+      SAFE_FREE(data);
 
       /* free the structure */
       packet_destroy_object(po);

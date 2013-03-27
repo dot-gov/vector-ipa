@@ -54,7 +54,7 @@ int wep_decrypt(u_char *buf, size_t len, u_char *wkey, size_t wlen)
    u_char seed[32]; /* 256 bit for the wep key */
    struct wep_header *wep;
    u_char *encbuf;
-   u_char decbuf[len];
+   u_char *decbuf = NULL;
 
    /* the key was not set, don't try to decript it */
    if (wlen == 0)
@@ -90,6 +90,8 @@ int wep_decrypt(u_char *buf, size_t len, u_char *wkey, size_t wlen)
    /* initialize the RC4 key */
    RC4_set_key(&key, WEP_IV_LEN + wlen, seed);
 
+   SAFE_CALLOC(decbuf, len + WEP_CRC_LEN, sizeof(u_char));
+
    /* decrypt the frame (len + 4 byte of crc) */
    RC4(&key, len + WEP_CRC_LEN, encbuf, decbuf);
 
@@ -99,6 +101,8 @@ int wep_decrypt(u_char *buf, size_t len, u_char *wkey, size_t wlen)
     */
    if (CRC_checksum(decbuf, len + WEP_CRC_LEN, CRC_INIT) != CRC_RESULT) {
       //DEBUG_MSG(D_VERBOSE, "WEP decryption failed, the packet was skipped");
+      SAFE_FREE(decbuf);
+
       return -ENOTHANDLED;
    }
 
@@ -107,7 +111,9 @@ int wep_decrypt(u_char *buf, size_t len, u_char *wkey, size_t wlen)
     * overwriting the wep header. this way the packet is
     * identical to a non-WEP one.
     */
-   memcpy(buf, decbuf, len);
+   memcpy(buf, decbuf, len + WEP_CRC_LEN);
+
+   SAFE_FREE(decbuf);
 
    /*
     * wipe out the remaining bytes at the end of the packets
@@ -305,8 +311,8 @@ static void make_key_128(u_char *string, u_char *key)
 static int set_wpa_key(char *string)
 {
    char *p;
-   char *pass;
-   char *ssid;
+   char *pass = NULL;
+   char *ssid = NULL;
    char tmp[128];
    int i;
 
