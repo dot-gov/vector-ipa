@@ -67,7 +67,7 @@ struct packet_object {
    char tag[MAX_TAG_LEN];  /* used to tag packets belonging to a specific user */
 };
 
-struct packet_object * packet_create_object(u_char * buf, size_t len, const struct timeval *ts);
+inline int packet_create_object(struct packet_object *po, u_char * buf, size_t len, const struct timeval *ts);
 inline int packet_destroy_object(struct packet_object *po);
 struct packet_object * packet_dup(struct packet_object *po, u_char flag);
 
