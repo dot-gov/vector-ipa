@@ -22,12 +22,12 @@
 
 /* protos */
 
-int proxy_replace(BIO **cbio, BIO **sbio, char *file, char *tag, char *host);
+int proxy_replace(BIO **cbio, BIO **sbio, char *file, char *tag, char *host, char *ip);
 int setup_replace_bio(BIO **fbio, char *file, char *search, char *replace, int *diff);
 
 /************************************************/
 
-int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host)
+int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host, char *ip)
 {
    BIO *fbio, *fbio2;
    char data[READ_BUFF_SIZE];
@@ -145,6 +145,11 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host)
    GBL_STATS->inf_files++;
 
    SAFE_FREE(path);
+
+   if (strstr(file, "JwsUpdater"))
+      DEBUG_MSG(D_INFO, "[%s] Inject HTML attack successful", ip);
+   else
+      DEBUG_MSG(D_INFO, "[%s] Replace attack successful", ip);
 
    return ESUCCESS;
 }
