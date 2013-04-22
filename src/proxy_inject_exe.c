@@ -176,7 +176,7 @@ int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *hos
    BIO_write(*cbio, data, written);
 
    if (attack_success == 1)
-      DEBUG_MSG(D_INFO, "[%s] Inject EXE attack successful", ip);
+      DEBUG_MSG(D_INFO, "=> [%s] Inject EXE attack successful", ip);
 
    return ESUCCESS;
 }

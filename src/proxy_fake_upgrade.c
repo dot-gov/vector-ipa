@@ -128,7 +128,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       SAFE_FREE(data);
 
       if (attack_success == 1)
-          DEBUG_MSG(D_INFO, "[%s] Inject Upgrade attack successful", ip);
+          DEBUG_MSG(D_INFO, "=> [%s] Inject Upgrade attack successful", ip);
 
       return ESUCCESS;
    } else {
@@ -147,7 +147,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 
    GBL_STATS->inf_files++;
 
-   DEBUG_MSG(D_INFO, "[%s] Inject Upgrade attack successful", ip);
+   DEBUG_MSG(D_INFO, "=> [%s] Inject Upgrade attack successful", ip);
 
    return ESUCCESS;
 }
