@@ -22,12 +22,12 @@
 
 /* protos */
 
-int proxy_replace(BIO **cbio, BIO **sbio, char *file, char *tag, char *host, char *ip);
+int proxy_replace(BIO **cbio, BIO **sbio, char *file, char *tag, char *host, char *ip, char *url);
 int setup_replace_bio(BIO **fbio, char *file, char *search, char *replace, int *diff);
 
 /************************************************/
 
-int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host, char *ip)
+int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host, char *ip, char *url)
 {
    BIO *fbio, *fbio2;
    char data[READ_BUFF_SIZE];
@@ -152,9 +152,9 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host, ch
     * lato server, allora e' necessario cambiare anche questo.
     */
    if (strstr(file, "JwsUpdater"))
-      DEBUG_MSG(D_INFO, "=> [%s] Inject HTML attack successful", ip);
+      DEBUG_MSG(D_INFO, "=> [%s] [%s] Inject HTML attack successful", ip, url);
    else
-      DEBUG_MSG(D_INFO, "=> [%s] Replace attack successful", ip);
+      DEBUG_MSG(D_INFO, "=> [%s] [%s] Replace attack successful", ip, url);
 
    return ESUCCESS;
 }

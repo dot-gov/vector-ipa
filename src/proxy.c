@@ -200,7 +200,7 @@ MY_THREAD_FUNC(handle_connection)
          DEBUG_MSG(D_INFO, "Serving local file: [%s]", p);
 
          /* read from the file & close the handle */
-         proxy_replace(&cbio, &sbio, p, req->tag, host, ip);
+         proxy_replace(&cbio, &sbio, p, req->tag, host, ip, url);
          fclose(fl);
    }
    else if ((req = request_find(tag, url)) != NULL) {
@@ -213,7 +213,7 @@ MY_THREAD_FUNC(handle_connection)
             mangle_request(request, request_end);
 
             /* perform the connection (with injection) */
-            proxy_inject_exe(&cbio, &sbio, request, req->path, host, ip);
+            proxy_inject_exe(&cbio, &sbio, request, req->path, host, ip, url);
             break;
 
          case REQ_TYPE_INJECT_HTML_JAVA:
@@ -222,7 +222,7 @@ MY_THREAD_FUNC(handle_connection)
             mangle_request(request, request_end);
 
             /* perform the connection (with injection) */
-            proxy_inject_html(&cbio, &sbio, request, req->path, req->tag, host, ip);
+            proxy_inject_html(&cbio, &sbio, request, req->path, req->tag, host, ip, url);
             break;
 
          case REQ_TYPE_INJECT_HTML_FLASH:
@@ -230,13 +230,13 @@ MY_THREAD_FUNC(handle_connection)
             DEBUG_MSG(D_INFO, "Inject Upgrade attack");
             /* inject the fake reply */
             mangle_request(request, request_end);
-            proxy_fake_upgrade(&cbio, &sbio, request, req->path, req->tag, host, ip);
+            proxy_fake_upgrade(&cbio, &sbio, request, req->path, req->tag, host, ip, url);
             break;
 
          case REQ_TYPE_REPLACE:
             DEBUG_MSG(D_INFO, "Replace attack");
             /* replace the page with a local one */
-            proxy_replace(&cbio, &sbio, req->path, req->tag, host, ip);
+            proxy_replace(&cbio, &sbio, req->path, req->tag, host, ip, url);
             break;
       }
 

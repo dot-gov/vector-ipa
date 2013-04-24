@@ -23,12 +23,12 @@
 
 void sanitize_header(char *header);
 int fix_content_lenght(char *header, int len);
-int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip);
+int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip, char *url);
 BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host);
 
 /************************************************/
 
-int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip)
+int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip, char *url)
 {
    BIO *fbio = NULL;
    char *data;
