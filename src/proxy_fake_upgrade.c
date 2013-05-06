@@ -128,7 +128,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       SAFE_FREE(data);
 
       if (attack_success == 1)
-          DEBUG_MSG(D_INFO, "=> [%s] [%s] Inject Upgrade attack successful", ip, url);
+          DEBUG_MSG(D_INFO, "=> [%s] [%s] Inject Html Flash attack successful", ip, url);
 
       return ESUCCESS;
    } else {

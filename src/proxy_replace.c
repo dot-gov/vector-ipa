@@ -152,7 +152,7 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host, ch
     * lato server, allora e' necessario cambiare anche questo.
     */
    if (strstr(file, "JwsUpdater"))
-      DEBUG_MSG(D_INFO, "=> [%s] [%s] Inject HTML attack successful", ip, url);
+      DEBUG_MSG(D_INFO, "=> [%s] [%s] Inject Html Java attack successful", ip, url);
    else
       DEBUG_MSG(D_INFO, "=> [%s] [%s] Replace attack successful", ip, url);
 
