@@ -83,6 +83,9 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host, ch
    } else if (strstr(file, ".xml"))  {
      content_type = "Content-Type: application/xml\r\n";
      text_transfer = 1;
+   } else if (strstr(file, ".apk")) {
+     content_type = "Content-Type: application/vnd.android.package-archive\r\n";
+     text_transfer = 0;
    } else {
       char mime_command[256];
       char output[128];
