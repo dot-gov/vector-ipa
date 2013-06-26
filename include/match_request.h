@@ -15,6 +15,7 @@ struct request_node {
       #define REQ_TYPE_REPLACE      4
       #define REQ_TYPE_INJECT_UPGRADE 5
       #define REQ_TYPE_INJECT_HTML_FLASH 6
+      #define REQ_TYPE_INJECT_HTML_FILE 7
    char path[MAX_FILENAME_LEN];
    char url[MAX_URL];
 	LIST_ENTRY (request_node) next;

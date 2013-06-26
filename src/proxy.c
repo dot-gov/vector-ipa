@@ -238,6 +238,12 @@ MY_THREAD_FUNC(handle_connection)
             /* replace the page with a local one */
             proxy_replace(&cbio, &sbio, req->path, req->tag, host, ip, url);
             break;
+
+        case REQ_TYPE_INJECT_HTML_FILE:
+            DEBUG_MSG(D_INFO, "Inject HTML file attack");
+            mangle_request(request, request_end);
+            proxy_inject_html_file(&cbio, &sbio, request, req->path, req->tag, host, ip, url);
+            break;
       }
 
    } else if ((req = request_find_tag(tag)) != NULL) {

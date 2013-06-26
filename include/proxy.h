@@ -28,6 +28,7 @@
 extern void proxy_start(void);
 extern int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host, char *ip, char *url);
 extern int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip, char *url);
+extern int proxy_inject_html_file(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip, char *url);
 extern int proxy_null(BIO **cbio, BIO **sbio, char *header);
 extern int proxy_replace(BIO **cbio, BIO **sbio, char *file, char *tag, char *host, char *ip, char *url);
 extern int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file, char *tag, char *host, char *ip, char *url);

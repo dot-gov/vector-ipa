@@ -95,6 +95,8 @@ struct request_node *req_new(const char *value)
       tmp->type = REQ_TYPE_INJECT_UPGRADE;
    else if (!strcmp(q, "REPLACE"))
       tmp->type = REQ_TYPE_REPLACE;
+   else if (!strcmp(q, "INJECT-HTML-FILE"))
+      tmp->type = REQ_TYPE_INJECT_HTML_FILE;
    else {
       DEBUG_MSG(D_ERROR, "Unknown attack method [%s]", q);
       return NULL;
