@@ -248,6 +248,8 @@ BIO *BIO_new_inject_html_file(const char *file, const char *tag, const char *hos
    bis.inject_len = html_to_inject_len;
 
    BIO_ctrl(bio, BIO_C_SET_BUF_MEM, 1, &bis);
+
+   DEBUG_MSG(D_INFO, "=> [%s] [%s] Inject HTML File attack successful", file, host);
    
    SAFE_FREE(html_to_inject);
    return bio;
