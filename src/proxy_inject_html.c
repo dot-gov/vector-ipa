@@ -127,6 +127,7 @@ int proxy_inject_html_file(BIO **cbio, BIO **sbio, char *header, char *file, cha
    int data_len;
    int len, written;
    int inject_len;
+   int attack_success = 0;
 
    /* connect to the real server */
    *sbio = BIO_new(BIO_s_connect());
@@ -179,6 +180,8 @@ int proxy_inject_html_file(BIO **cbio, BIO **sbio, char *header, char *file, cha
 
       /* update the stats */
       GBL_STATS->inf_files++;
+
+      attack_success = 1;
    } else {
 
       DEBUG_MSG(D_INFO, "Server [%s] reply is not HTTP 200 OK", host);
@@ -195,6 +198,7 @@ int proxy_inject_html_file(BIO **cbio, BIO **sbio, char *header, char *file, cha
    /* check for gzip compression */
    if (strstr(data, ": gzip")) {
       DEBUG_MSG(D_ERROR, "ERROR: GZIP compression detected, cannot attack !!");
+      attack_success = 0;
    }
 
    /* fix the Content-Length in the html header */
@@ -207,6 +211,9 @@ int proxy_inject_html_file(BIO **cbio, BIO **sbio, char *header, char *file, cha
    
    SAFE_FREE(data);
    
+   if (attack_success == 1)
+       DEBUG_MSG(D_INFO, "=> [%s] [%s] Inject Html File attack successful", ip, url);
+
    return ESUCCESS;
 }
 
@@ -249,8 +256,6 @@ BIO *BIO_new_inject_html_file(const char *file, const char *tag, const char *hos
 
    BIO_ctrl(bio, BIO_C_SET_BUF_MEM, 1, &bis);
 
-   DEBUG_MSG(D_INFO, "=> [%s] [%s] Inject HTML File attack successful", file, host);
-   
    SAFE_FREE(html_to_inject);
    return bio;
 }
