@@ -98,7 +98,11 @@ void capture_init(void)
    }
 
    /* set the snaplen to maximum */
-   GBL_PCAP->snaplen = UINT16_MAX; 
+   if (iface_is_wireless(GBL_OPTIONS->Siface)) {
+       GBL_PCAP->snaplen = UINT16_MAX; 
+   } else {
+       GBL_PCAP->snaplen = 2048;
+   }
  
    /* open the interface from GBL_OPTIONS (user specified) */
    if (GBL_OPTIONS->read) {
@@ -163,9 +167,18 @@ void capture_init(void)
          }
       }
 
+#if defined(OS_LINUX)
+      if (iface_is_wireless(GBL_OPTIONS->Siface)) {
+          if (pcap_set_timeout(pd, PCAP_TIMEOUT) < 0)
+              FATAL_ERROR("Cannot set timeout to %d on [%s]", PCAP_TIMEOUT, GBL_OPTIONS->Siface);
+      } else {
+          if (pcap_set_timeout(pd, 1) < 0)
+              FATAL_ERROR("Cannot set timeout to 1 on [%s]", GBL_OPTIONS->Siface);
+      }
+#else
       if (pcap_set_timeout(pd, PCAP_TIMEOUT) < 0)
          FATAL_ERROR("Cannot set timeout to %d on [%s]", PCAP_TIMEOUT, GBL_OPTIONS->Siface);
-
+#endif
       if (pcap_activate(pd) < 0)
          FATAL_ERROR("Cannot activate [%s]", GBL_OPTIONS->Siface);
    }
@@ -223,7 +236,11 @@ void capture_init(void)
       for (i = 1; i < DAG_PARALLEL_CORES; i++) {
          snprintf(iface, 32, "%s:%d", GBL_OPTIONS->Siface, i*2);
          DEBUG_MSG(D_INFO, "Opening HW balanced interface %s", iface);
+#if defined(OS_LINUX)
+         GBL_PCAP->pcap[i] = pcap_open_live(iface, GBL_PCAP->snaplen, 1, 1, pcap_errbuf);
+#else
          GBL_PCAP->pcap[i] = pcap_open_live(iface, GBL_PCAP->snaplen, 1, PCAP_TIMEOUT, pcap_errbuf);
+#endif
          ON_ERROR(GBL_PCAP->pcap[i], NULL, "pcap_open_live: %s", pcap_errbuf);
       }
    }
