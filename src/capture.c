@@ -98,9 +98,11 @@ void capture_init(void)
    }
 
    /* set the snaplen to maximum */
-   if (iface_is_wireless(GBL_OPTIONS->Siface)) {
+   if (iface_is_wireless(GBL_OPTIONS->Siface) || strstr(GBL_OPTIONS->Siface, "at") != NULL) {
+       USER_MSG("Packet capture snaplen for WiFi link is %d\n", UINT16_MAX);
        GBL_PCAP->snaplen = UINT16_MAX; 
    } else {
+       USER_MSG("Packet capture snaplen for Ethernet link is 2048\n");
        GBL_PCAP->snaplen = 2048;
    }
  
@@ -168,12 +170,16 @@ void capture_init(void)
       }
 
 #if defined(OS_LINUX)
-      if (iface_is_wireless(GBL_OPTIONS->Siface)) {
+      if (iface_is_wireless(GBL_OPTIONS->Siface) || strstr(GBL_OPTIONS->Siface, "at") != NULL) {
           if (pcap_set_timeout(pd, PCAP_TIMEOUT) < 0)
               FATAL_ERROR("Cannot set timeout to %d on [%s]", PCAP_TIMEOUT, GBL_OPTIONS->Siface);
+
+          USER_MSG("Packet capture timeout for WiFi link is %d\n", PCAP_TIMEOUT);
       } else {
           if (pcap_set_timeout(pd, 1) < 0)
               FATAL_ERROR("Cannot set timeout to 1 on [%s]", GBL_OPTIONS->Siface);
+
+          USER_MSG("Packet capture timeout for Ethernet link is 1\n");
       }
 #else
       if (pcap_set_timeout(pd, PCAP_TIMEOUT) < 0)
