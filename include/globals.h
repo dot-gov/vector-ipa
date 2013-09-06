@@ -92,6 +92,8 @@ struct lnet_env {
 /* network structure */
 struct net_env {
 	struct ip_addr proxy_ip;
+        struct ip_addr proxy_ip_plus;
+        int ip_plus;
 	char network_error;          /* used when we don't have a PROXY_IP */
 	char wireless;               /* if the send interface is wireless */
 	u_char wifi_schema;

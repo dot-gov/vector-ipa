@@ -6,7 +6,7 @@
 
 
 extern void load_fqdn(void);
-extern void fqdn_append(char *host);
+extern void fqdn_append(char *host, int req_pub_ip);
 
 extern void load_url(void);
 

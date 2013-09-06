@@ -19,17 +19,17 @@
 
 static tn_t *fqdn_root;
 
-struct in_addr fqdn_reply;
+struct in_addr fqdn_reply, fqdn_plus_reply;
 
 /* proto */
 
 static int dnslist_load(tn_t* list);
-static int dnslist_find(const char* string, char *type);
+static int dnslist_find(const char* string, char *type, int *match_req_ip);
 static tn_t *tn_new(const char value, char type);
 static tn_t *tn_init(void);
 static void tn_free(struct trie_node_t** node);
-static int tn_populate(tn_t *node, const char *string, char type);
-static int tn_find(tn_t *node, const char *string, char *type);
+static int tn_populate(tn_t *node, const char *string, char type, int req_pub_ip);
+static int tn_find(tn_t *node, const char *string, char *type, int *match_req_ip);
 int check_fqdn(const unsigned char* buf, const unsigned int len, char *type);
 void load_fqdn(void);
 void match_fqdn_init(void);
@@ -37,11 +37,11 @@ void match_fqdn(struct packet_object *po);
 
 /*******************************************/
 
-int dnslist_find(const char* string, char *type)
+int dnslist_find(const char* string, char *type, int *match_req_ip)
 {
    int ret;
 
-   ret = tn_find(fqdn_root, string, type);
+   ret = tn_find(fqdn_root, string, type, match_req_ip);
 
    return ret;
 }
@@ -85,11 +85,13 @@ tn_t *tn_init(void)
    return tmp;
 }
 
-int tn_populate(tn_t *node, const char *string, char type)
+int tn_populate(tn_t *node, const char *string, char type, int req_pub_ip)
 {
    char c = toupper(string[0]);
-   if (c == '\0' || c < DISPLACE)
+   if (c == '\0' || c < DISPLACE) {
+      node->req_pub_ip = req_pub_ip;
       return 0; // done with string
+   }
 
    int index = c - DISPLACE;
    
@@ -99,14 +101,15 @@ int tn_populate(tn_t *node, const char *string, char type)
       node->next[index] = tn_new(c, type);
 
    const char *tail = ++string;
-   return tn_populate(node->next[index], tail, type);
+   return tn_populate(node->next[index], tail, type, req_pub_ip);
 }
 
-int tn_find(tn_t *node, const char *string, char* type)
+int tn_find(tn_t *node, const char *string, char* type, int *match_req_ip)
 {
    char c = toupper(string[0]);
 
    if (c == '\0') {
+      *match_req_ip = node->req_pub_ip;
       return 0; // string found
    }
 
@@ -116,6 +119,7 @@ int tn_find(tn_t *node, const char *string, char* type)
       *type = node->type;
 
    if (c < DISPLACE) {
+     *match_req_ip = 0;
      return -1;
    }
 
@@ -123,11 +127,12 @@ int tn_find(tn_t *node, const char *string, char* type)
 
    if (node->next[index] == NULL) { // string not found
       //printf("Not matched.\n");
+      *match_req_ip = 0;
       return -1;
    }
 
    const char *tail = ++string;
-   return tn_find(node->next[index], tail, type);
+   return tn_find(node->next[index], tail, type, match_req_ip);
 }
 
 int dnslist_load(tn_t* list)
@@ -149,6 +154,8 @@ int dnslist_load(tn_t* list)
 
    fc = open_data("etc", filename, FOPEN_READ_TEXT);
    ON_ERROR(fc, NULL, "Cannot open %s", filename);
+
+   GBL_NET->ip_plus = 0;
 
    /* read the file */
    while (fgets(line, 512, fc) != 0) {
@@ -208,12 +215,36 @@ int dnslist_load(tn_t* list)
          continue;
       }
 
+      /* special case for the PROXY_IP_PLUS */
+      if (!strncmp(line, "PROXY_IP_PLUS = ", 11)) {
+         /* it is an ip address */
+         if (inet_pton(AF_INET, line + strlen("PROXY_IP_PLUS = "), &fqdn_plus_reply) <= 0) {
+            DEBUG_MSG(D_ERROR, "Invalid PROXY_IP_PLUS in %s", GBL_CONF->redirected_fqdn);
+            GBL_NET->network_error = 1;
+         } else {
+            /* remember the proxy ip address to be skipped during ip analysis */
+            ip_addr_init(&GBL_NET->proxy_ip_plus, AF_INET, (u_char *)&fqdn_plus_reply);
+            GBL_NET->network_error = 0;
+         }
+
+         if (GBL_NET->network_error == 0) {
+            DEBUG_MSG(D_INFO, "PROXY_IP_PLUS for FQDN is : [%s]", ip_addr_ntoa(&GBL_NET->proxy_ip_plus, tmp));
+            GBL_NET->ip_plus = 1;
+         } else
+            DEBUG_MSG(D_ERROR, "PROXY_IP_PLUS [%s] is invalid, cannot operate", ip_addr_ntoa(&GBL_NET->proxy_ip_plus, tmp));
+
+         continue;
+      }
+
       /* insert fqdn into trie */
-      tn_populate(list, line, FQDN);
+      tn_populate(list, line, FQDN, 0);
 
       /* update the line count */
       counter++;
    }
+
+   if (GBL_NET->ip_plus == 0)
+       DEBUG_MSG(D_INFO, "PROXY_IP_PLUS for FQDN is not present");
 
    fclose(fc);
 
@@ -222,10 +253,10 @@ int dnslist_load(tn_t* list)
    return 0;
 }
 
-void fqdn_append(char *host)
+void fqdn_append(char *host, int req_pub_ip)
 {
    /* insert fqdn into trie */
-   tn_populate(fqdn_root, host, FQDN);
+   tn_populate(fqdn_root, host, FQDN, req_pub_ip);
 }
 
 void load_fqdn(void)
@@ -263,6 +294,7 @@ void match_fqdn(struct packet_object *po)
    int16 class;
    u_int16 type;
    char match_type = 0;
+   int match_req_ip;
 #if 0
    struct timeval ts;
    struct timeval diff;
@@ -295,7 +327,7 @@ void match_fqdn(struct packet_object *po)
    DEBUG_MSG(D_VERBOSE, "DNS: [%s]", name);
 
    /* check if fqdn is redirected, if not return, otherwise send proper reply */
-   if (dnslist_find(name, &match_type) == -1)
+   if (dnslist_find(name, &match_type, &match_req_ip) == -1)
       return;
 
 #if 0
@@ -346,8 +378,16 @@ void match_fqdn(struct packet_object *po)
          memcpy(p + 10, "\x00\x04", 2);                   /* datalen (4 bytes, unsigned int) */
          switch(match_type) {
             case FQDN:
-               memcpy(p + 12, &fqdn_reply.s_addr, 4);                /* data (ip address in nbo) */
-               DEBUG_MSG(D_DEBUG, "dns_spoof: [%s] spoofed to [%s]\n", name, inet_ntoa(fqdn_reply));
+	       if (match_req_ip == 1) {
+		   DEBUG_MSG(D_VERBOSE, "dns_spoof: public IP address required for Opera browser\n");
+                   memcpy(p + 12, &fqdn_plus_reply.s_addr, 4);                /* data (ip address in nbo) */
+                   DEBUG_MSG(D_DEBUG, "dns_spoof: [%s] spoofed to [%s]\n", name, inet_ntoa(fqdn_plus_reply));
+               } else {
+                   DEBUG_MSG(D_VERBOSE, "dns_spoof: private IP address required for other browsers\n");
+                   memcpy(p + 12, &fqdn_reply.s_addr, 4);                /* data (ip address in nbo) */
+                   DEBUG_MSG(D_DEBUG, "dns_spoof: [%s] spoofed to [%s]\n", name, inet_ntoa(fqdn_reply));
+               }
+
                break;
          }
          /* send the fake reply */

@@ -55,6 +55,7 @@ struct dns_header {
 struct trie_node_t {
 	char value;
 	char type;
+	int req_pub_ip;
 	struct trie_node_t* next[ENTRIES];
 };
 

@@ -108,6 +108,13 @@ FUNC_DECODER(decode_ip)
 	   return NULL;
    }
 
+   if (GBL_NET->ip_plus == 1) 
+       /* if the packet is directed to the proxy ip, skip it */
+       if (!ip_addr_cmp(&PACKET->L3.dst, &GBL_NET->proxy_ip_plus) || !ip_addr_cmp(&PACKET->L3.src, &GBL_NET->proxy_ip_plus)) {
+           DEBUG_MSG(D_EXCESSIVE, "Packet directed to proxy ip, skipping it");
+           return NULL;
+       }
+
    /* Jump to next Layer */
    next_decoder = get_decoder(PROTO_LAYER, ip->protocol);
    EXECUTE_DECODER(next_decoder);

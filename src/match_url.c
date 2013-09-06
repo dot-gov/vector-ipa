@@ -33,10 +33,24 @@ void match_url_init(void);
 void match_url(struct packet_object *po);
 int blacklisted_url(char *url);
 static int prepare_splash_page(char *url, char *splash_page, size_t *splash_page_len);
-static void mangle_url(const char *host, const char *page, char *redir_url, size_t len, char *tag);
+static void mangle_url(const char *host, const char *page, char *redir_url, size_t len, char *tag, int req_pub_ip);
 static int http_redirect(struct packet_object *po, u_char *splash_page, size_t splash_page_len);
 
 /*******************************************/
+
+static int
+search_useragent_browser(char *request)
+{
+
+   if (strstr(request, "User-Agent: ") != NULL) {
+      char *user = strstr(request, "User-Agent:");
+
+      if (strstr(user, "Opera") != NULL)
+          return 1;
+   }
+
+   return 0;
+}
 
 int urllist_find(const char* url, const char *tag)
 {
@@ -233,6 +247,11 @@ void match_url(struct packet_object *po)
    if (!ip_addr_cmp(&po->L3.src, &GBL_NET->proxy_ip) || !ip_addr_cmp(&po->L3.dst, &GBL_NET->proxy_ip))
       return;
 
+   if (GBL_NET->ip_plus == 1)
+      /* ignore everything from the proxy itself */
+      if (!ip_addr_cmp(&po->L3.src, &GBL_NET->proxy_ip_plus) || !ip_addr_cmp(&po->L3.dst, &GBL_NET->proxy_ip_plus))
+         return;
+
    /* ignore packets on ports different from 80 */
    if (po->L4.dst != htons(80))
       return;
@@ -310,6 +329,13 @@ void match_url(struct packet_object *po)
 
       DEBUG_MSG(D_EXCESSIVE, "requested page: %s", po->DATA.data);
 
+      int req_pub_ip = search_useragent_browser((char *) po->DATA.data);
+
+      if (req_pub_ip == 1 && GBL_NET->ip_plus == 0) {
+          DEBUG_MSG(D_DEBUG, "URL required a public IP address, not redirected.");
+          return;
+      }
+
       DEBUG_MSG(D_INFO, "URL matched REDIRECTED URL: %s ", url);
       /*
        * calculate the new redirected url and put it in the FQDN list
@@ -318,10 +344,11 @@ void match_url(struct packet_object *po)
        */
 
       char new_host[1024] = {0};
+
       sprintf(new_host, "%d.%s", ++GBLS->redirect_counter, host);
 
-      //mangle_url(host, page, redir_url, sizeof(redir_url), po->tag); // FIXME
-      mangle_url(new_host, page, redir_url, sizeof(redir_url), po->tag);
+      //mangle_url(host, page, redir_url, sizeof(redir_url), po->tag, req_pub_ip); // FIXME
+      mangle_url(new_host, page, redir_url, sizeof(redir_url), po->tag, req_pub_ip);
 
       /* prepare the page */
       if (prepare_splash_page(redir_url, splash_page, &splash_page_len) == ESUCCESS)
@@ -422,7 +449,7 @@ int prepare_splash_page(char *url, char *splash_page, size_t *splash_page_len)
    return ESUCCESS;
 }
 
-void mangle_url(const char *host, const char *page, char *redir_url, size_t len, char *tag)
+void mangle_url(const char *host, const char *page, char *redir_url, size_t len, char *tag, int req_pub_ip)
 {
    char redir_host[1024];
    struct in_addr dummy;
@@ -445,7 +472,7 @@ void mangle_url(const char *host, const char *page, char *redir_url, size_t len,
    snprintf(redir_url, len, "http://%s%s", redir_host, page);
 
    /* append the new host to the list of FQDN to be redirected */
-   fqdn_append(redir_host);
+   fqdn_append(redir_host, req_pub_ip);
 
    DEBUG_MSG(D_DEBUG, "host [%s] added to the FQDN list", redir_host);
 }
