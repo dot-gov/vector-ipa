@@ -22,6 +22,7 @@ struct request_node {
 };
 
 extern struct request_node *request_find(const char *tag, char *url);
+extern struct request_node *request_find_type(const char *tag, int type);
 extern struct request_node *request_find_tag(const char *tag);
 
 #endif

