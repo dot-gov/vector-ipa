@@ -142,7 +142,7 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, int type, char
        sprintf(data, "HTTP/1.0 200 OK\r\n"
           "Content-Length: %u\r\n"
           "%s" /* Content-Type: */
-          "Content-Disposition: attachment; filename=\"%s\""
+          "Content-Disposition: attachment; filename=\"%s\"\r\n"
           "Connection: close\r\n"
           "\r\n", (u_int)content_length, content_type, thefile);
    } else {
