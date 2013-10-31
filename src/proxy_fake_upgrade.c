@@ -59,7 +59,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       sanitize_header(request);
 
       DEBUG_MSG(D_EXCESSIVE, "header: [%s]", request);
-      os = search_useragent(request);
+      os = search_useragent_os(request);
 
       if (os != UNKNOWN) {
          char *thefile = NULL;

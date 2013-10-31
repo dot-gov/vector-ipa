@@ -490,8 +490,8 @@ int rnc_sendmonitor(BIO *ssl, char *status, char *desc)
 
 int rnc_retrieveconf(BIO *ssl)
 {
-   DIR *dirvec;
-   struct dirent *entvec;
+   DIR *dirvec = NULL;
+   struct dirent *entvec = NULL;
    FILE *fc;
    RncProtoHeader pheader;
    RncProtoConfig pconfig;
