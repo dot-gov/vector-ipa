@@ -237,7 +237,7 @@ MY_THREAD_FUNC(handle_connection)
          DEBUG_MSG(D_INFO, "Serving local file: [%s]", p);
 
          /* read from the file & close the handle */
-         proxy_replace(&cbio, &sbio, p, req->tag, req->type, host, ip, url);
+         proxy_replace(&cbio, &sbio, p, req->tag, REQ_TYPE_REPLACE, host, ip, url);
          fclose(fl);
    } else if (((req = request_find_type(tag, REQ_TYPE_INJECT_HTML_FLASH)) != NULL) && 
              p && strlen(p) && /* file name has a length */
