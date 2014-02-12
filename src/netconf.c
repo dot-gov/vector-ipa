@@ -597,6 +597,9 @@ int rnc_retrieveconf(BIO *ssl)
 
                   DEBUG_MSG(D_INFO, "OS X detected, melting...");
                   ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py osx %s", file);
+	       } else if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".apk") != NULL) {
+                  DEBUG_MSG(D_INFO, "Android detected, already melted...");
+		  continue;
                } else if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".linux") != NULL) {
                   file[strlen(file) - 6] = '\0';
 

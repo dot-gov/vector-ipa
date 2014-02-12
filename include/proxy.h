@@ -25,7 +25,7 @@
 #define READ_BUFF_SIZE  16384
 
 /* protos */
-typedef enum osuser { WINDOWS = 0, OSX, LINUX, UNKNOWN } osuser;
+typedef enum osuser { WINDOWS = 0, OSX, ANDROID, LINUX, UNKNOWN } osuser;
 
 extern osuser search_useragent_os(char *request);
 extern int search_useragent_browser(char *request);

