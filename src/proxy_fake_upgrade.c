@@ -136,7 +136,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 	 ON_ERROR(html_to_inject, NULL, "virtual memory exhausted");
 
          fbio = BIO_new(BIO_f_inject());
-	 bis.search = "<div id=\"player-api\" class=\"player-width player-height off-screen-target watch-content player-api\"></div>";
+	 bis.search = "player-api\"></div>";
          bis.inject = html_to_inject;
          bis.inject_len = strlen(html_to_inject);
 
