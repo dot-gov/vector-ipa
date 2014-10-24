@@ -11,8 +11,14 @@
 #include <file.h>
 #include <netconf.h>
 #include <threads.h>
+#if 0
+/* Old RNC protocol */
+
 #include <openssl/ssl.h>
+#endif
 #include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <json.h>
 #include <netdb.h>
 #include <signal.h>
 #include <dirent.h>
@@ -25,8 +31,16 @@
 
 void netconf_start(void);
 MY_THREAD_FUNC(rnc_communicator);
-//static int tcp_connect(char *host, int port);
-//static int tcp_accept(int sock);
+void rnc_sendstats(BIO *pbio);
+#if 0
+/* Old RNC protocol */
+
+void netconf_start(void);
+MY_THREAD_FUNC(rnc_communicator);
+#if 0
+static int tcp_connect(char *host, int port);
+static int tcp_accept(int sock);
+#endif
 int ssl_proto_read(BIO *ssl, void *buf, int num);
 int ssl_proto_write(BIO *ssl, void *buf, int num);
 void rnc_handleproto(BIO *ssl);
@@ -36,9 +50,219 @@ int rnc_retrieveconf(BIO *ssl);
 int rnc_retrieveupgrade(BIO *ssl);
 int rnc_retrievecert(BIO *ssl);
 int rnc_sendlogs(BIO *ssl);
+#endif
 void get_system_stats(u_int *disk, u_int *cpu, u_int *pcpu);
 
 /************************************************/
+
+void netconf_start(void)
+{
+   /* check when to not initialize the proxy */
+   if (GBL_OPTIONS->read) {
+      DEBUG_MSG(D_INFO, "netconf_start: skipping... (reading offline)");
+      return;
+   }
+
+   my_thread_new("netconf", "RNC communication module", &rnc_communicator, NULL);
+}
+
+MY_THREAD_FUNC(rnc_communicator)
+{
+   BIO *pbio = NULL;
+
+   /* initialize the thread */
+   my_thread_init();
+
+   OpenSSL_add_all_ciphers();
+
+   DEBUG_MSG(D_INFO, "RNC communication started");
+
+   /* main loop for contact the RNC server */
+   while (1) {
+      do {
+         if (! (pbio = BIO_new_connect(GBL_NETCONF->rnc_server)))
+            break;
+
+         if (BIO_do_connect(pbio) <= 0) {
+            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", GBL_NETCONF->rnc_server);
+            break;
+         } else {
+            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", GBL_NETCONF->rnc_server);
+         }
+
+         rnc_sendstats(pbio);
+      } while (0);
+
+      if (pbio) {
+         BIO_free(pbio);
+         pbio = NULL;
+      }
+
+      /* Interval time to contact the RNC server */
+      sleep(30);
+   }
+
+   /* NEVER REACHED */
+   return NULL;
+}
+
+void rnc_sendstats(BIO *pbio)
+{
+   RncProtoMonitor pmonitor;
+   RncProtoLog plog;
+   char descr[1024], buf[1024];
+   char *cmdstatus = "{\"command\":\"STATUS\"," \
+                     "\"params\":{\"version\":\"%s\",\"status\":\"%s\",\"msg\":\"%s\"," \
+                     "\"stats\":{\"disk\":\"%d\",\"cpu\":\"%d\",\"pcpu\":\"%d\"}}}";
+   char *cmdlog = "{\"command\":\"LOG\",\"params\":{\"time\": %lu,\"type\":\"%s\",\"desc\":\"%s\"}}";
+   unsigned char iv[16];
+   char *memptr = NULL, *type = NULL;
+   BIO *bmem = NULL, *bbase64 = NULL, *bcipher = NULL;
+   long memlen = 0;
+   int count = 0;
+
+   do {
+      if (! (bmem = BIO_new(BIO_s_mem()))) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      if (! (bbase64 = BIO_new(BIO_f_base64()))) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      if (! (bcipher = BIO_new(BIO_f_cipher()))) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      memset(iv, '\0', sizeof(iv));
+      BIO_set_cipher(bcipher, EVP_get_cipherbyname("aes-128-cbc"), (unsigned char *)GBL_NETCONF->rnc_key, iv, 1);
+
+      BIO_push(bbase64, bmem);
+      BIO_push(bcipher, bbase64);
+
+      if (BIO_write(bcipher, "[", 1) <= 0) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      memset(&pmonitor, 0, sizeof(pmonitor));
+
+      /* monitor parameters */
+      get_system_stats(&pmonitor.disk, &pmonitor.cpu, &pmonitor.pcpu);
+
+      if (GBL_NET->network_error) {
+         snprintf(pmonitor.status, sizeof(pmonitor.status), "%s", "ERROR");
+         snprintf(pmonitor.desc, sizeof(pmonitor.desc), "%s", "PROXY_IP is invalid, please fix the configuration...");
+      } else {
+         snprintf(descr, sizeof(descr), 
+                  "Active users: %u of %u   Redirected FQDN: %u   Redirected URL: %u   File Infected: %u", 
+                  (u_int)GBL_STATS->active_users, 
+                  (u_int)GBL_STATS->tot_users, 
+                  (u_int)GBL_STATS->redir_fqdn, 
+                  (u_int)GBL_STATS->redir_url, 
+                  (u_int)GBL_STATS->inf_files);
+
+         snprintf(pmonitor.status, sizeof(pmonitor.status), "%s", "OK");
+         snprintf(pmonitor.desc, sizeof(pmonitor.desc), "%s", descr);
+      }
+
+      /* STATUS command */
+      if (BIO_printf(bcipher, cmdstatus, 
+                     GBL_RCS_VERSION, pmonitor.status, pmonitor.desc, pmonitor.disk, pmonitor.cpu, pmonitor.pcpu) <= 0) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      /* send logs until there are any in the cache */
+      while (log_get(&plog)) {
+         /* log parameters */
+         switch(plog.type) {
+            case RNC_LOG_INFO:
+               type = "INFO";
+               break;
+
+            case RNC_LOG_ERROR:
+               type = "ERROR";
+               break;
+
+            case RNC_LOG_DEBUG:
+               type = "DEBUG";
+               break;
+         }
+
+         if (BIO_write(bcipher, ",", 1) <= 0) {
+            count = -1;
+            break;
+         }
+
+         /* LOG command */
+         if (BIO_printf(bcipher, cmdlog, plog.ts, type, plog.desc) <= 0) {
+            count = -1;
+            break;
+         }
+
+         count++;
+      }
+
+      if (count == -1) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      if (BIO_write(bcipher, "]", 1) <= 0) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      (void)BIO_flush(bcipher);
+
+      if (! (memlen = BIO_get_mem_data(bmem, &memptr))) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      if (BIO_printf(pbio, "POST / HTTP/1.0\r\n" \
+                           "Host: %s\r\n" \
+                           "Accept: */" "*\r\n" \
+                           "Cookie: %s\r\n" \
+                           "Content-Length: %ld\r\n" \
+                           "Content-Type: application/octet-stream\r\n" \
+                           "Connection: close\r\n" \
+                           "\r\n", GBL_NETCONF->rnc_server, GBL_NETCONF->rnc_cookie, memlen) <= 0) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      if (BIO_write(pbio, memptr, memlen) != memlen) {
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
+         break;
+      }
+
+      (void)BIO_flush(pbio); 
+
+      DEBUG_MSG(D_INFO, "Sending monitor information to RNC [%s]", descr);
+      DEBUG_MSG(D_INFO, "Sending log information to RNC [%d]", count);
+
+      while ((memlen = BIO_read(pbio, buf, sizeof(buf))) > 0);
+      if(memlen != 0)
+         break;
+   } while(0);
+
+   if (bmem)
+      BIO_free(bmem);
+
+   if (bbase64)
+      BIO_free(bbase64);
+
+   if (bcipher)
+      BIO_free(bcipher);
+}
+
+#if 0
+/* Old RNC protocol */
 
 void netconf_start(void)
 {
@@ -786,7 +1010,7 @@ int rnc_sendlogs(BIO *ssl)
 
    return count;
 }
-
+#endif
 
 void get_system_stats(u_int *disk, u_int *cpu, u_int *pcpu)
 {

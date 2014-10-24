@@ -4,6 +4,9 @@
 #ifndef __NETCONF_H
 #define __NETCONF_H
 
+#if 0
+/* Old RNC protocol */
+
 #define MAX_PATH 260
 
 typedef struct _RncProto {
@@ -19,6 +22,7 @@ typedef struct _RncProtoLogin {
 typedef struct _RncProtoVersion {
    char version[16];
 } RncProtoVersion;
+#endif
 
 typedef struct _RncProtoMonitor {
    char status[16];
@@ -27,6 +31,9 @@ typedef struct _RncProtoMonitor {
    u_int pcpu;
    char desc[1024];
 } RncProtoMonitor;
+
+#if 0
+/* Old RNC protocol */
 
 typedef struct _RncProtoConfig {
    char filename[MAX_PATH];
@@ -54,16 +61,25 @@ struct mytm {
    int   tm_yday;    /* days since January 1 [0-365] */
    int   tm_isdst;   /* Daylight Savings Time flag */
 };
+#endif
 
 #define RNC_MAX_LOG_LEN 1024
 typedef struct _RncProtoLog {
+#if 0
+   /* Old RCS protocol */
+
    struct mytm timestamp;
+#endif
+   unsigned int ts;
    u_int type;
       #define RNC_LOG_INFO  0x00
       #define RNC_LOG_ERROR 0x01
       #define RNC_LOG_DEBUG 0x02
    char desc[RNC_MAX_LOG_LEN];
 } RncProtoLog;
+
+#if 0
+/* Old RNC protocol */
 
 #define RNC_PROTO_INVALID  0x000F0000  // Non usare
 #define RNC_PROTO_OK       0x000F0001  // OK
@@ -76,6 +92,7 @@ typedef struct _RncProtoLog {
 #define RNC_PROTO_VERSION  0x000F0008  // Invia la versione del componente
 #define RNC_PROTO_UPGRADE  0x000F0009  // Auto upgrade
 #define RNC_PROTO_CERT     0x000F000A  // Richiede il certificato network
+#endif
 
 /* protos */
 extern void netconf_start(void);

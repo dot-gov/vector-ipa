@@ -55,7 +55,7 @@ void send_init(void)
       GBL_OPTIONS->Riface = GBL_CONF->response_iface;
 
    if (!GBL_OPTIONS->read)
-      USER_MSG("Sending to %s...\n", GBL_OPTIONS->Riface);
+      DEBUG_MSG(D_INFO, "Sending to %s...", GBL_OPTIONS->Riface);
 
    /* check when to not initialize libnet */
    if (GBL_OPTIONS->read) {

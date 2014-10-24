@@ -89,20 +89,20 @@ void capture_init(void)
 
 
    if (GBL_OPTIONS->read) {
-      USER_MSG("Reading from %s...\n", GBL_OPTIONS->pcapfile_in);
+      DEBUG_MSG(D_INFO, "Reading from %s...", GBL_OPTIONS->pcapfile_in);
    } else {
       if (GBL_OPTIONS->Siface_chan && iface_is_wireless(GBL_OPTIONS->Siface))
-         USER_MSG("Listening on %s (channel %d)...\n", GBL_OPTIONS->Siface, GBL_OPTIONS->Siface_chan);
+         DEBUG_MSG(D_INFO, "Listening on %s (channel %d)...", GBL_OPTIONS->Siface, GBL_OPTIONS->Siface_chan);
       else
-         USER_MSG("Listening on %s...\n", GBL_OPTIONS->Siface);
+         DEBUG_MSG(D_INFO, "Listening on %s...", GBL_OPTIONS->Siface);
    }
 
    /* set the snaplen to maximum */
    if (iface_is_wireless(GBL_OPTIONS->Siface) || strstr(GBL_OPTIONS->Siface, "at") != NULL) {
-       USER_MSG("Packet capture snaplen for WiFi link is %d\n", UINT16_MAX);
+       DEBUG_MSG(D_INFO, "Packet capture snaplen for WiFi link is %d", UINT16_MAX);
        GBL_PCAP->snaplen = UINT16_MAX; 
    } else {
-       USER_MSG("Packet capture snaplen for Ethernet link is 2048\n");
+       DEBUG_MSG(D_INFO, "Packet capture snaplen for Ethernet link is 2048");
        GBL_PCAP->snaplen = 2048;
    }
  
@@ -174,12 +174,12 @@ void capture_init(void)
           if (pcap_set_timeout(pd, PCAP_TIMEOUT) < 0)
               FATAL_ERROR("Cannot set timeout to %d on [%s]", PCAP_TIMEOUT, GBL_OPTIONS->Siface);
 
-          USER_MSG("Packet capture timeout for WiFi link is %d\n", PCAP_TIMEOUT);
+          DEBUG_MSG(D_INFO, "Packet capture timeout for WiFi link is %d", PCAP_TIMEOUT);
       } else {
           if (pcap_set_timeout(pd, 1) < 0)
               FATAL_ERROR("Cannot set timeout to 1 on [%s]", GBL_OPTIONS->Siface);
 
-          USER_MSG("Packet capture timeout for Ethernet link is 1\n");
+          DEBUG_MSG(D_INFO, "Packet capture timeout for Ethernet link is 1");
       }
 #else
       if (pcap_set_timeout(pd, PCAP_TIMEOUT) < 0)
@@ -222,7 +222,7 @@ void capture_init(void)
    GBL_PCAP->dlt = pcap_datalink(pd);
 
    DEBUG_MSG(D_INFO, "capture_init: %s [%d]", pcap_datalink_val_to_description(GBL_PCAP->dlt), GBL_PCAP->dlt);
-   USER_MSG("Link layer is %s\n", pcap_datalink_val_to_description(GBL_PCAP->dlt));
+   DEBUG_MSG(D_INFO, "Link layer is %s", pcap_datalink_val_to_description(GBL_PCAP->dlt));
 
    /* check if we support this media */
    if (get_decoder(LINK_LAYER, GBL_PCAP->dlt) == NULL) {

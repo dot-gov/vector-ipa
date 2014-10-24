@@ -47,9 +47,19 @@ struct program_env {
 
 /* rnc parameters */
 struct netconf_env {
+#if 0
+   /* Old RNC protocol */
+ 
    char *rnc_sign_file;
    char *rnc_sign;
    int rnc_port;
+#endif
+   char *rnc_server_file;
+   char *rnc_server;
+   char *rnc_key_file;
+   char *rnc_key;
+   char *rnc_cookie_file;
+   char *rnc_cookie;
 };
 
 /* targets values */

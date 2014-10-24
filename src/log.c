@@ -28,6 +28,9 @@ int log_get(RncProtoLog *plog);
 
 void log_add(int type, char *desc)
 {
+#if 0
+   /* Old RNC protocol */
+
    time_t tt;
    struct tm *ttm;
 
@@ -43,6 +46,8 @@ void log_add(int type, char *desc)
 
    /* create the log in the cache */
    memcpy(&log_array[log_write_pointer].plog.timestamp, ttm, sizeof(struct mytm)); /* see the declaration of mytm */
+#endif
+   log_array[log_write_pointer].plog.ts = time(NULL);
    snprintf(log_array[log_write_pointer].plog.desc, RNC_MAX_LOG_LEN - 1, "%s", desc);
    log_array[log_write_pointer].plog.type = type;
 

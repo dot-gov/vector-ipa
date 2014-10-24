@@ -29,14 +29,21 @@ static struct conf_entry rules[] = {
    { "redirected_fqdn", NULL },
    { "redirected_url", NULL },
    { "redirected_users", NULL },
-	{ "redirected_tactical", NULL },
+   { "redirected_tactical", NULL },
    { "intercepted_files", NULL },
    { NULL, NULL },
 };
 
 static struct conf_entry netconf[] = {
+#if 0
+   /* Old RNC protocol  */
+
    { "rnc_sign_file", NULL },
    { "rnc_port", NULL },
+#endif
+   { "rnc_server_file", NULL },
+   { "rnc_key_file", NULL },
+   { "rnc_cookie_file", NULL },
    { NULL, NULL },
 };
 
@@ -89,13 +96,20 @@ static void init_structures(void)
    set_pointer((struct conf_entry *)&common, "response_iface", &GBL_CONF->response_iface);
    set_pointer((struct conf_entry *)&common, "pcap_filter", &GBL_PCAP->filter);
    set_pointer((struct conf_entry *)&targets, "user_timeout", &GBL_TARGETS->user_timeout);
+#if 0
+   /* Old RNC protocol */
+
    set_pointer((struct conf_entry *)&netconf, "rnc_sign_file", &GBL_NETCONF->rnc_sign_file);
    set_pointer((struct conf_entry *)&netconf, "rnc_port", &GBL_NETCONF->rnc_port);
+#endif
+   set_pointer((struct conf_entry *)&netconf, "rnc_server_file", &GBL_NETCONF->rnc_server_file);
+   set_pointer((struct conf_entry *)&netconf, "rnc_key_file", &GBL_NETCONF->rnc_key_file);
+   set_pointer((struct conf_entry *)&netconf, "rnc_cookie_file", &GBL_NETCONF->rnc_cookie_file);
    set_pointer((struct conf_entry *)&wifi, "wifi_key", &GBL_NET->wifi_key);
    set_pointer((struct conf_entry *)&rules, "redirected_fqdn", &GBL_CONF->redirected_fqdn);
    set_pointer((struct conf_entry *)&rules, "redirected_url", &GBL_CONF->redirected_url);
    set_pointer((struct conf_entry *)&rules, "redirected_users", &GBL_CONF->redirected_users);
-	set_pointer((struct conf_entry *)&rules, "redirected_tactical", &GBL_CONF->redirected_tactical);
+   set_pointer((struct conf_entry *)&rules, "redirected_tactical", &GBL_CONF->redirected_tactical);
    set_pointer((struct conf_entry *)&rules, "intercepted_files", &GBL_CONF->intercepted_files);
 
    /* sanity check */
@@ -135,7 +149,7 @@ void load_conf(void)
 {
    FILE *fc;
    char line[512];
-   char *p, *q, **tmp;
+   char *p, *q, **tmp, *ltmp = NULL;
    int lineno = 0, ret;
    struct conf_entry *curr_section = NULL;
    void *value = NULL;
@@ -256,32 +270,126 @@ void load_conf(void)
                *p = 0;
          } while (p++ < *tmp + strlen(*tmp) );
 
-         DEBUG_MSG(D_INFO, "load_conf: \tENTRY: %s  [%s]", q, *tmp);
+         DEBUG_MSG(D_INFO, "load_conf: ENTRY: %s  [%s]", q, *tmp);
 
       } else {
          /* set the integer value */
          *(int *)value = strtol(p, (char **)NULL, 10);
-         DEBUG_MSG(D_INFO, "load_conf: \tENTRY: %s  %d", q, *(int *)value);
+         DEBUG_MSG(D_INFO, "load_conf: ENTRY: %s  %d", q, *(int *)value);
       }
    }
 
    fclose(fc);
 
-   /* open the signature file */
+#if 0
+   /* Old RNC protocol */
+
+   // open the signature file
    if ((fc = open_data("etc", GBL_NETCONF->rnc_sign_file, FOPEN_READ_TEXT)) != NULL) {
 
       SAFE_CALLOC(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN + 1, sizeof(char));
 
-      ret = fread(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN, sizeof(char), fc);
-      if (ret < 0)
-         ERROR_MSG("load_conf: cannot read network signature");
+       ret = fread(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN, sizeof(char), fc);
+       if (ret < 0)
+          ERROR_MSG("load_conf: cannot read network signature");
 
-      DEBUG_MSG(D_INFO, "load_conf: network signature is: [%s]", GBL_NETCONF->rnc_sign);
+       DEBUG_MSG(D_INFO, "load_conf: network signature is: [%s]", GBL_NETCONF->rnc_sign);
+
+       fclose(fc);
+    } else {
+       DEBUG_MSG(D_INFO, "load_conf: network signature is empty, starting in learning mode");
+       SAFE_CALLOC(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN + 1, sizeof(char));
+    }
+#endif
+
+   /* open the server file */
+   if ((fc = open_data("etc", GBL_NETCONF->rnc_server_file, FOPEN_READ_TEXT)) != NULL) {
+      ltmp = NULL;
+
+      SAFE_CALLOC(ltmp, BUFSIZ, sizeof(char));
+      ret = fread(ltmp, BUFSIZ, sizeof(char), fc);
+
+      if (ret < 0)
+         ERROR_MSG("load_conf: cannot read network server");
+
+      ret = strlen(ltmp);
+
+      if (ltmp[ret - 1] == '\n')
+         ltmp[ret - 1] = '\0';
+      else {
+         ltmp[ret] = '\0';
+         ret += 1;
+      }
+
+      SAFE_CALLOC(GBL_NETCONF->rnc_server, ret, sizeof(char));
+      memcpy(GBL_NETCONF->rnc_server, ltmp, sizeof(char) * ret);
+      SAFE_FREE(ltmp);
+
+      DEBUG_MSG(D_INFO, "load_conf: network server is: [%s]", GBL_NETCONF->rnc_server);
 
       fclose(fc);
    } else {
-      DEBUG_MSG(D_INFO, "load_conf: network signature is empty, starting in learning mode");
-      SAFE_CALLOC(GBL_NETCONF->rnc_sign, RNC_SIGN_LEN + 1, sizeof(char));
+      ERROR_MSG("load_conf: cannot read network server because it is empty");
+   }
+
+   /* open the key file */
+   if ((fc = open_data("etc", GBL_NETCONF->rnc_key_file, FOPEN_READ_TEXT)) != NULL) {
+      ltmp = NULL;
+
+      SAFE_CALLOC(ltmp, BUFSIZ, sizeof(char));
+      ret = fread(ltmp, BUFSIZ, sizeof(char), fc);
+
+      if (ret < 0)
+         ERROR_MSG("load_conf: cannot read network key");
+
+      ret = strlen(ltmp);
+
+      if (ltmp[ret - 1] == '\n')
+         ltmp[ret - 1] = '\0';
+      else {
+         ltmp[ret] = '\0';
+         ret += 1;
+      }
+
+      SAFE_CALLOC(GBL_NETCONF->rnc_key, ret, sizeof(char));
+      memcpy(GBL_NETCONF->rnc_key, ltmp, sizeof(char) * ret);
+      SAFE_FREE(ltmp);
+
+      DEBUG_MSG(D_INFO, "load_conf: network key is: [%s]", GBL_NETCONF->rnc_key);
+
+      fclose(fc);
+   } else {
+      ERROR_MSG("load_conf: cannot read network key because it is empty");
+   }
+
+   /* open the cookie file */
+   if ((fc = open_data("etc", GBL_NETCONF->rnc_cookie_file, FOPEN_READ_TEXT)) != NULL) {
+      ltmp = NULL;
+
+      SAFE_CALLOC(ltmp, BUFSIZ, sizeof(char));
+      ret = fread(ltmp, BUFSIZ, sizeof(char), fc);
+
+      if (ret < 0)
+         ERROR_MSG("load_conf: cannot read network cookie");
+
+      ret = strlen(ltmp);
+
+      if (ltmp[ret - 1] == '\n')
+         ltmp[ret - 1] = '\0';
+      else {
+         ltmp[ret] = '\0';
+         ret += 1;
+      }
+
+      SAFE_CALLOC(GBL_NETCONF->rnc_cookie, ret, sizeof(char));
+      memcpy(GBL_NETCONF->rnc_cookie, ltmp, sizeof(char) * ret);
+      SAFE_FREE(ltmp);
+
+      DEBUG_MSG(D_INFO, "load_conf: network cookie is: [%s]", GBL_NETCONF->rnc_cookie);
+
+      fclose(fc);
+   } else {
+      ERROR_MSG("load_conf: cannot read network cookie because it is empty");
    }
 
    if (GBL_NET->wifi_key) {
