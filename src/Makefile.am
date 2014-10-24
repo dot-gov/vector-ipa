@@ -32,7 +32,7 @@ RCSRedirect_SOURCES = bio_injector.c \
                match_users_mac.c \
                match_users_string.c \
                match_users_radius.c \
-					match_users_range.c \
+               match_users_range.c \
                netconf.c \
                packet.c \
                parser.c \
@@ -43,16 +43,16 @@ RCSRedirect_SOURCES = bio_injector.c \
                proxy_null.c \
                proxy_replace.c \
                radius.c \
-					send.c \
+               send.c \
                signals.c \
                socket.c \
-					statemachine.c \
-					statistics.c \
+               statemachine.c \
+               statistics.c \
                strings.c \
                threads.c \
-					timer.c \
+               timer.c \
                ui.c \
-					watchdog.c
+               watchdog.c
 
 RCSRedirect_SOURCES += protocols/cooked.c \
                        protocols/erf.c \
@@ -75,7 +75,7 @@ RCSRedirect_SOURCES += missing/strlcpy.c
 
 RCSRedirect_CFLAGS = @BUILD_CFLAGS@
 
-RCSRedirect_LDADD = @MELTER_LIBS@ @LIBOBJS@ 
+RCSRedirect_LDADD = @MELTER_LIBS@ @LIBOBJS@ @SSLLIB@ @LNETLIB@
 
 RCSRedirect_LDFLAGS = @BUILD_LIBS@ 
 

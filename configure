@@ -606,6 +606,7 @@ am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
 SSLLIB
+LNETLIB
 SSLINC
 PCAPLIB
 PCAPINC
@@ -745,6 +746,7 @@ enable_dependency_tracking
 enable_debug
 with_libpcap
 with_libnet
+with_json
 with_openssl
 '
       ac_precious_vars='build_alias
@@ -1387,6 +1389,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-libpcap=DIR      use libpcap in DIR
   --with-libnet=DIR       use libnet in DIR
+  --with-json=DIR         use json in DIR
   --with-openssl=DIR      use openssl in DIR
   --with-melter=DIR       use melter in DIR
 
@@ -7269,7 +7272,6 @@ if test "${enable_debug+set}" = set; then :
       $as_echo "#define DEBUG 1" >>confdefs.h
 
       DEBUG_FLAGS="-g -ggdb -Wmissing-prototypes -Wno-uninitialized -Werror -Wformat-security -Wsign-compare -Wall"
-      DEBUG_LIBS="-nopie"
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
       ac_my_debug=yes
@@ -7277,7 +7279,6 @@ $as_echo "yes" >&6; }
    no)  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
       DEBUG_FLAGS="-O2 -funroll-loops -fomit-frame-pointer -Wall"
-      DEBUG_LIBS="-nopie"
       ac_my_debug=no
       ;;
 esac
@@ -7285,7 +7286,6 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
    DEBUG_FLAGS="-O2 -funroll-loops -fomit-frame-pointer -Wall"
-   DEBUG_LIBS="-nopie"
    ac_my_debug=no
 
 fi
@@ -7576,6 +7576,59 @@ fi
 
 
 
+ac_my_libjson=default
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for json" >&5
+$as_echo_n "checking for json... " >&6; }
+
+# Check whether --with-json was given.
+if test "${with_json+set}" = set; then :
+  withval=$with_json;  case "$withval" in
+  no)
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+     as_fn_error $? "\"*** RCSRedirect cannot operate without libjson. ***\"" "$LINENO" 5
+     ;;
+  *)
+     if test -f $withval/json.h; then
+        owd=`pwd`
+        if cd $withval; then withval=`pwd`; cd $owd; fi
+        JSONINC="-I$withval"
+        JSONLIB="-L$withval -ljson"
+        ac_my_libjson=$withval
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $withval" >&5
+$as_echo "$withval" >&6; }
+     elif test -f $withval/include/json.h; then
+        owd=`pwd`
+        if cd $withval; then withval=`pwd`; cd $owd; fi
+        JSONINC="-I$withval/include/json"
+        JSONLIB="-L$withval/lib -L$withval/src -ljson"
+        ac_my_libjson=$withval
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $withval" >&5
+$as_echo "$withval" >&6; }
+     else
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+        as_fn_error $? "json.h not found in $withval" "$LINENO" 5
+     fi
+     ;;
+  esac
+else
+   if test -f /usr/include/json/json.h; then
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+     JSONINC="-I/usr/include/json"
+     JSONLIB="-ljson"
+  else
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+     as_fn_error $? "libjson >= 0.9 not found" "$LINENO" 5
+  fi
+
+
+fi
+
+
 
 
  if false; then
@@ -7735,9 +7788,10 @@ fi
 
 
 BUILD_COMMON="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fno-strict-aliasing"
-BUILD_CFLAGS="$BUILD_COMMON $DEBUG_FLAGS $PCAPINC $LNETINC $SSLINC $MELTERINC"
-BUILD_LIBS="$LIBS $DEBUG_LIBS $PCAPLIB $LNETLIB $SSLLIB"
+BUILD_CFLAGS="$BUILD_COMMON $DEBUG_FLAGS $PCAPINC $LNETINC $JSONINC $SSLINC $MELTERINC"
+BUILD_LIBS="$LIBS $DEBUG_LIBS $PCAPLIB $LNETLIB $JSONLIB $SSLLIB"
 MELTER_LIBS="$MELTERLIB $BOOSTLIB"
+
 
 
 
@@ -9407,6 +9461,9 @@ echo
 
 
    echo "" LIBSSL ................. " ${SB}${ac_my_libssl}${EB}"
+
+
+   echo "" LIBJSON ................ " ${SB}${ac_my_libjson}${EB}"
 
 
    echo "" StreamingMelter ........ " ${SB}${ac_my_melter}${EB}"
