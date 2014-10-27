@@ -107,7 +107,7 @@ MY_THREAD_FUNC(rnc_communicator)
          pbio = NULL;
       }
 
-      /* Retrieve conf: CONFIG_UPGRADE */
+      /* Retrieve conf: UPGRADE_REQUEST */
       do {
          if (! (pbio = BIO_new_connect(rnc_server)))
             break;
