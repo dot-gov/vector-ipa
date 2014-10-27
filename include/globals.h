@@ -56,6 +56,8 @@ struct netconf_env {
 #endif
    char *rnc_server_file;
    char *rnc_server;
+   char *rnc_port_file;
+   char *rnc_port;
    char *rnc_key_file;
    char *rnc_key;
    char *rnc_cookie_file;

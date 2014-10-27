@@ -31,6 +31,7 @@
 
 void netconf_start(void);
 MY_THREAD_FUNC(rnc_communicator);
+void rnc_retrieveconf(BIO *pbio);
 void rnc_sendstats(BIO *pbio);
 #if 0
 /* Old RNC protocol */
@@ -69,18 +70,44 @@ void netconf_start(void)
 MY_THREAD_FUNC(rnc_communicator)
 {
    BIO *pbio = NULL;
+   char *rnc_server = NULL;
 
    /* initialize the thread */
    my_thread_init();
 
    OpenSSL_add_all_ciphers();
 
-   DEBUG_MSG(D_INFO, "RNC communication started");
+   SAFE_CALLOC(rnc_server, strlen(GBL_NETCONF->rnc_server) + strlen(GBL_NETCONF->rnc_port) + 2, sizeof(char));
+   snprintf(rnc_server, strlen(GBL_NETCONF->rnc_server) + strlen(GBL_NETCONF->rnc_port) + 2, "%s:%s", GBL_NETCONF->rnc_server, GBL_NETCONF->rnc_port);
+   rnc_server[strlen(GBL_NETCONF->rnc_server) + strlen(GBL_NETCONF->rnc_port) + 1] = '\0';
+
+   DEBUG_MSG(D_INFO, "RNC starting with server %s", rnc_server);
 
    /* main loop for contact the RNC server */
    while (1) {
+      /* Retrieve conf: CONFIG_REQUEST */
       do {
-         if (! (pbio = BIO_new_connect(GBL_NETCONF->rnc_server)))
+         if (! (pbio = BIO_new_connect(rnc_server)))
+            break;
+
+         if (BIO_do_connect(pbio) <= 0) {
+            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", GBL_NETCONF->rnc_server);
+            break;
+         } else {
+            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", GBL_NETCONF->rnc_server);
+         }
+
+         rnc_retrieveconf(pbio);
+      } while (0);
+
+      if (pbio) {
+         BIO_free(pbio);
+         pbio = NULL;
+      }
+
+      /* Send stats: STATUS and LOG */
+      do {
+         if (! (pbio = BIO_new_connect(rnc_server)))
             break;
 
          if (BIO_do_connect(pbio) <= 0) {
@@ -102,8 +129,90 @@ MY_THREAD_FUNC(rnc_communicator)
       sleep(30);
    }
 
+   SAFE_FREE(rnc_server);
+
    /* NEVER REACHED */
    return NULL;
+}
+
+void rnc_retrieveconf(BIO *pbio)
+{
+   char buf[1024];
+   char *cmdconfig = "{\"command\":\"CONFIG_REQUEST\",\"params\":{},\"body\":\"\"}";
+   unsigned char iv[16];
+   char *memptr = NULL;
+   BIO *bmem = NULL, *bbase64 = NULL, *bcipher = NULL;
+   long memlen = 0;
+
+   do {
+      if (! (bmem = BIO_new(BIO_s_mem()))) {
+         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         break;
+      }
+
+      if (! (bbase64 = BIO_new(BIO_f_base64()))) {
+         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         break;
+      }
+
+      if (! (bcipher = BIO_new(BIO_f_cipher()))) {
+         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         break;
+      }
+
+      memset(iv, '\0', sizeof(iv));
+      BIO_set_cipher(bcipher, EVP_get_cipherbyname("aes-128-cbc"), (unsigned char *)GBL_NETCONF->rnc_key, iv, 1);
+
+      BIO_push(bbase64, bmem);
+      BIO_push(bcipher, bbase64);
+
+      /* CONFIG_REQUEST command */
+      if (BIO_write(bcipher, cmdconfig, strlen(cmdconfig)) != strlen(cmdconfig)) {
+         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         break;
+      }
+
+      (void)BIO_flush(bcipher);
+
+      if (! (memlen = BIO_get_mem_data(bmem, &memptr))) {
+         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         break;
+      }
+
+      if (BIO_printf(pbio, "POST / HTTP/1.0\r\n" \
+                           "Host: %s\r\n" \
+                           "Accept: */" "*\r\n" \
+                           "Cookie: %s\r\n" \
+                           "Content-Length: %ld\r\n" \
+                           "Content-Type: application/octet-stream\r\n" \
+                           "Connection: close\r\n" \
+                           "\r\n", GBL_NETCONF->rnc_server, GBL_NETCONF->rnc_cookie, memlen) <= 0) {
+         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         break;
+      }
+
+      if (BIO_write(pbio, memptr, memlen) != memlen) {
+         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         break;
+      }
+
+      (void)BIO_flush(pbio);
+
+      DEBUG_MSG(D_INFO, "Retrieve configuration from RNC");
+
+      while ((memlen = BIO_read(pbio, buf, sizeof(buf))) > 0);
+      if(memlen != 0)
+         break;
+   } while(0);
+
+   if (bmem)
+      BIO_free(bmem);
+
+   if (bbase64)
+      BIO_free(bbase64);
+
+   if (bcipher)
+      BIO_free(bcipher);
 }
 
 void rnc_sendstats(BIO *pbio)

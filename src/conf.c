@@ -42,6 +42,7 @@ static struct conf_entry netconf[] = {
    { "rnc_port", NULL },
 #endif
    { "rnc_server_file", NULL },
+   { "rnc_port_file", NULL },
    { "rnc_key_file", NULL },
    { "rnc_cookie_file", NULL },
    { NULL, NULL },
@@ -103,6 +104,7 @@ static void init_structures(void)
    set_pointer((struct conf_entry *)&netconf, "rnc_port", &GBL_NETCONF->rnc_port);
 #endif
    set_pointer((struct conf_entry *)&netconf, "rnc_server_file", &GBL_NETCONF->rnc_server_file);
+   set_pointer((struct conf_entry *)&netconf, "rnc_port_file", &GBL_NETCONF->rnc_port_file);
    set_pointer((struct conf_entry *)&netconf, "rnc_key_file", &GBL_NETCONF->rnc_key_file);
    set_pointer((struct conf_entry *)&netconf, "rnc_cookie_file", &GBL_NETCONF->rnc_cookie_file);
    set_pointer((struct conf_entry *)&wifi, "wifi_key", &GBL_NET->wifi_key);
@@ -330,6 +332,36 @@ void load_conf(void)
       fclose(fc);
    } else {
       ERROR_MSG("load_conf: cannot read network server because it is empty");
+   }
+
+   /* open the port file */
+   if ((fc = open_data("etc", GBL_NETCONF->rnc_port_file, FOPEN_READ_TEXT)) != NULL) {
+      ltmp = NULL;
+
+      SAFE_CALLOC(ltmp, BUFSIZ, sizeof(char));
+      ret = fread(ltmp, BUFSIZ, sizeof(char), fc);
+
+      if (ret < 0)
+         ERROR_MSG("load_conf: cannot read network port");
+
+      ret = strlen(ltmp);
+
+      if (ltmp[ret - 1] == '\n')
+         ltmp[ret - 1] = '\0';
+      else {
+         ltmp[ret] = '\0';
+         ret += 1;
+      }
+
+      SAFE_CALLOC(GBL_NETCONF->rnc_port, ret, sizeof(char));
+      memcpy(GBL_NETCONF->rnc_port, ltmp, sizeof(char) * ret);
+      SAFE_FREE(ltmp);
+
+      DEBUG_MSG(D_INFO, "load_conf: network port is: [%s]", GBL_NETCONF->rnc_port);
+
+      fclose(fc);
+   } else {
+      ERROR_MSG("load_conf: cannot read network port because it is empty");
    }
 
    /* open the key file */
