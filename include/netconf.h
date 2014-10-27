@@ -78,6 +78,9 @@ typedef struct _RncProtoLog {
    char desc[RNC_MAX_LOG_LEN];
 } RncProtoLog;
 
+#define RNC_PROTO_CONFIG_REQUEST        0x0
+#define RNC_PROTO_UPGRADE_REQUEST       0x1
+
 #if 0
 /* Old RNC protocol */
 

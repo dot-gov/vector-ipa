@@ -31,7 +31,9 @@
 
 void netconf_start(void);
 MY_THREAD_FUNC(rnc_communicator);
-void rnc_retrieveconf(BIO *pbio);
+void rnc_retrieve(BIO *pbio, int type);
+void rnc_handleconf(char *memptr, long memlen);
+void rnc_handleupgrade(char *memptr, long memlen);
 void rnc_sendstats(BIO *pbio);
 #if 0
 /* Old RNC protocol */
@@ -97,7 +99,27 @@ MY_THREAD_FUNC(rnc_communicator)
             DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", GBL_NETCONF->rnc_server);
          }
 
-         rnc_retrieveconf(pbio);
+         rnc_retrieve(pbio, RNC_PROTO_CONFIG_REQUEST);
+      } while (0);
+
+      if (pbio) {
+         BIO_free(pbio);
+         pbio = NULL;
+      }
+
+      /* Retrieve conf: CONFIG_UPGRADE */
+      do {
+         if (! (pbio = BIO_new_connect(rnc_server)))
+            break;
+
+         if (BIO_do_connect(pbio) <= 0) {
+            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", GBL_NETCONF->rnc_server);
+            break;
+         } else {
+            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", GBL_NETCONF->rnc_server);
+         }
+
+         rnc_retrieve(pbio, RNC_PROTO_UPGRADE_REQUEST);
       } while (0);
 
       if (pbio) {
@@ -135,28 +157,30 @@ MY_THREAD_FUNC(rnc_communicator)
    return NULL;
 }
 
-void rnc_retrieveconf(BIO *pbio)
+void rnc_retrieve(BIO *pbio, int type)
 {
-   char buf[1024];
+   char buf[1024], check[1024];
    char *cmdconfig = "{\"command\":\"CONFIG_REQUEST\",\"params\":{},\"body\":\"\"}";
+   char *cmdupgrade = "{\"command\":\"UPGRADE_REQUEST\",\"params\":{},\"body\":\"\"}";
    unsigned char iv[16];
    char *memptr = NULL;
-   BIO *bmem = NULL, *bbase64 = NULL, *bcipher = NULL;
-   long memlen = 0;
+   BIO *bbuf = NULL, *bmem = NULL, *bbase64 = NULL, *bcipher = NULL;
+   long memlen = 0, checklen = 0;
+   int len = 0, ret = 0, error = 0;
 
    do {
       if (! (bmem = BIO_new(BIO_s_mem()))) {
-         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
          break;
       }
 
       if (! (bbase64 = BIO_new(BIO_f_base64()))) {
-         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
          break;
       }
 
       if (! (bcipher = BIO_new(BIO_f_cipher()))) {
-         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
          break;
       }
 
@@ -166,16 +190,31 @@ void rnc_retrieveconf(BIO *pbio)
       BIO_push(bbase64, bmem);
       BIO_push(bcipher, bbase64);
 
-      /* CONFIG_REQUEST command */
-      if (BIO_write(bcipher, cmdconfig, strlen(cmdconfig)) != strlen(cmdconfig)) {
-         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
-         break;
+      switch (type) {
+         case RNC_PROTO_CONFIG_REQUEST:
+            if (BIO_write(bcipher, cmdconfig, strlen(cmdconfig)) != strlen(cmdconfig)) {
+               error = 1;
+               DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
+               break;
+            }
+            break;
+
+         case RNC_PROTO_UPGRADE_REQUEST:
+            if (BIO_write(bcipher, cmdupgrade, strlen(cmdupgrade)) != strlen(cmdupgrade)) {
+               error = 1;
+               DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
+               break;
+            }
+            break;
       }
+
+      if (error == 1)
+         break;
 
       (void)BIO_flush(bcipher);
 
       if (! (memlen = BIO_get_mem_data(bmem, &memptr))) {
-         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
          break;
       }
 
@@ -187,22 +226,16 @@ void rnc_retrieveconf(BIO *pbio)
                            "Content-Type: application/octet-stream\r\n" \
                            "Connection: close\r\n" \
                            "\r\n", GBL_NETCONF->rnc_server, GBL_NETCONF->rnc_cookie, memlen) <= 0) {
-         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
          break;
       }
 
       if (BIO_write(pbio, memptr, memlen) != memlen) {
-         DEBUG_MSG(D_ERROR, "Cannot retrieve configuration from RNC");
+         DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
          break;
       }
 
       (void)BIO_flush(pbio);
-
-      DEBUG_MSG(D_INFO, "Retrieve configuration from RNC");
-
-      while ((memlen = BIO_read(pbio, buf, sizeof(buf))) > 0);
-      if(memlen != 0)
-         break;
    } while(0);
 
    if (bmem)
@@ -213,6 +246,97 @@ void rnc_retrieveconf(BIO *pbio)
 
    if (bcipher)
       BIO_free(bcipher);
+
+   DEBUG_MSG(D_INFO, "Retrieve from RNC...");
+
+   do {
+      bbuf = BIO_new(BIO_s_mem());
+
+      while (1) {
+         memset(buf, '\0', sizeof(buf));
+
+         for (len = 0; len < sizeof(buf); len++) {
+            ret = BIO_read(pbio, buf + len, 1);
+
+            if (ret == -1) {
+               error = 1;
+               DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
+               break;
+            } else if (ret == 0)
+               break;
+
+            if (buf[len] == '\n')
+                break;
+         }
+
+         if (error == 1) 
+            break;
+
+         if (! len)
+            break;
+
+         if (len == sizeof(buf)) {
+            if (buf[len - 1] == '\n' && buf[len - 2] == '\r') {
+               if (strstr(buf, "Content-Length: ") != NULL) {
+                  strncpy(check, buf + strlen("Content-Length: "), strlen(buf) - strlen("Content-Length: ") - 2);
+                  checklen = atol(check);
+               }
+               continue;
+            }
+         } else if (len > 0) {
+            if (buf[len] == '\n' && buf[len - 1] == '\r') {
+               if (strstr(buf, "Content-Length: ") != NULL) {
+                  strncpy(check, buf + strlen("Content-Length: "), strlen(buf) - strlen("Content-Length: ") - 2);
+                  checklen = atol(check);
+               }
+               continue;
+            }
+         }
+
+         if (BIO_write(bbuf, buf, strlen(buf)) <= 0) {
+            error = 1;
+            DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
+            break;
+         }
+      }
+
+      if (error == 1)
+         break;
+
+      if (! (memlen = BIO_get_mem_data(bbuf, &memptr))) {
+         DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
+         break;
+      }
+
+      if (memlen != checklen) {
+         DEBUG_MSG(D_ERROR, "Cannot retrieve from RNC");
+         break;
+      }
+
+      switch (type) {
+         case RNC_PROTO_CONFIG_REQUEST:
+            rnc_handleconf(memptr, checklen);
+            break;
+         case RNC_PROTO_UPGRADE_REQUEST:
+            rnc_handleupgrade(memptr, checklen);
+            break;
+      }
+   } while(0);
+
+   if (bbuf)
+      BIO_free(bbuf);
+}
+
+void rnc_handleconf(char *memptr, long memlen)
+{
+   DEBUG_MSG(D_INFO, "Configuration retrieved from RNC");
+   DEBUG_MSG(D_INFO, "LEN: %ld STR: %s\n", memlen, memptr);
+}
+
+void rnc_handleupgrade(char *memptr, long memlen)
+{
+   DEBUG_MSG(D_INFO, "Upgrade retrieved from RNC");
+   DEBUG_MSG(D_INFO, "LEN: %ld STR: %s\n", memlen, memptr);
 }
 
 void rnc_sendstats(BIO *pbio)
@@ -356,7 +480,7 @@ void rnc_sendstats(BIO *pbio)
       DEBUG_MSG(D_INFO, "Sending log information to RNC [%d]", count);
 
       while ((memlen = BIO_read(pbio, buf, sizeof(buf))) > 0);
-      if(memlen != 0)
+      if (memlen != 0)
          break;
    } while(0);
 
