@@ -250,7 +250,6 @@ void rnc_retrieve(BIO *pbio, int type)
 
    do {
       bbuf = BIO_new(BIO_s_mem());
-      memset(buf, '\0', sizeof(buf));
 
       for (len = 0; ; len = 0) {
          while (len < sizeof(buf)) {
@@ -349,11 +348,8 @@ void rnc_handleretrieve(BIO *pbio, int cl, int type)
       BIO_push(bbase64, bbody);
       BIO_push(bcipher, bmem);
 
-      memset(buf, '\0', sizeof(buf));
-
       while (blen < cl) {
          ret = BIO_read(pbio, buf, ((cl - blen) > sizeof(buf)) ? sizeof(buf) : (cl - blen));
-         (void)write(500, buf, ret);
 
          if (ret == -1) {
             error = 1;
@@ -378,20 +374,26 @@ void rnc_handleretrieve(BIO *pbio, int cl, int type)
       if (error == 1)
          break;
 
-      (void)BIO_flush(bbody);
-
       do {
          blen = BIO_read(bbase64, buf, sizeof(buf));
-         
-         if (blen > 0)
-            BIO_write(bcipher, buf, blen);
+
+         if (blen > 0) {         
+            if (BIO_write(bcipher, buf, blen) != blen) {
+               error = 1;
+               DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
+               break;
+            }
+         }
       } while (blen > 0);
+
+      if (error == 1)
+         break;
 
       (void)BIO_flush(bcipher);
       blen = BIO_get_mem_data(bmem, &memptr);
 
-      //CIAO
-      DEBUG_MSG(D_INFO, "MESSAGE: %s", memptr); 
+      write(500, memptr, blen);
+      /* TODO: Check JSON */
    } while (0);
 
    if (bmem)
