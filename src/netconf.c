@@ -11,11 +11,7 @@
 #include <file.h>
 #include <netconf.h>
 #include <threads.h>
-#if 0
-/* Old RNC protocol */
-
 #include <openssl/ssl.h>
-#endif
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <json.h>
@@ -76,6 +72,8 @@ MY_THREAD_FUNC(rnc_communicator)
    /* initialize the thread */
    my_thread_init();
 
+   SSL_load_error_strings();
+   SSL_library_init();
    OpenSSL_add_all_ciphers();
 
    SAFE_CALLOC(rnc_server, strlen(GBL_NETCONF->rnc_server) + strlen(GBL_NETCONF->rnc_port) + 2, sizeof(char));
@@ -87,7 +85,7 @@ MY_THREAD_FUNC(rnc_communicator)
    /* main loop for contact the RNC server */
    while (1) {
       /* Retrieve conf: CONFIG_REQUEST */
-      do {
+/*      do {
          if (! (pbio = BIO_new_connect(rnc_server)))
             break;
 
@@ -105,7 +103,7 @@ MY_THREAD_FUNC(rnc_communicator)
          BIO_free(pbio);
          pbio = NULL;
       }
-
+*/
       /* Retrieve conf: UPGRADE_REQUEST */
       do {
          if (! (pbio = BIO_new_connect(rnc_server)))
@@ -127,7 +125,7 @@ MY_THREAD_FUNC(rnc_communicator)
       }
 
       /* Send stats: STATUS and LOG */
-      do {
+/*      do {
          if (! (pbio = BIO_new_connect(rnc_server)))
             break;
 
@@ -145,7 +143,7 @@ MY_THREAD_FUNC(rnc_communicator)
          BIO_free(pbio);
          pbio = NULL;
       }
-
+*/
       /* Interval time to contact the RNC server */
       sleep(30);
    }
@@ -286,14 +284,7 @@ void rnc_retrieve(BIO *pbio, int type)
       if (error == 1)
          break;
 
-      switch (type) {
-         case RNC_PROTO_CONFIG_REQUEST:
-            rnc_handleretrieve(pbio, cl, RNC_PROTO_CONFIG_REQUEST);
-            break;
-         case RNC_PROTO_UPGRADE_REQUEST:
-            rnc_handleretrieve(pbio, cl, RNC_PROTO_UPGRADE_REQUEST);
-            break;
-      }
+      rnc_handleretrieve(pbio, cl, type);
    } while(0);
 
    if (bbuf)
@@ -371,29 +362,43 @@ void rnc_handleretrieve(BIO *pbio, int cl, int type)
          }
       }
 
+      (void)BIO_flush(bbody);
+
+      printf("\n\n\n\nUSCITO\n\n\n\n");
+
       if (error == 1)
          break;
 
       do {
+         printf("ENTRO IN READ()\n");
+
          blen = BIO_read(bbase64, buf, sizeof(buf));
 
-         if (blen > 0) {         
+         printf("BUF: %s\n", buf);
+         printf("BLEN: %ld\n", blen);
+
+         printf("DOPO LA READ()\n");
+
+         if (blen > 0) {
+            printf("ENTRO IN WRITE()\n");
+
             if (BIO_write(bcipher, buf, blen) != blen) {
                error = 1;
                DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
                break;
             }
+
+            printf("DOPO LA WRITE\n");
          }
       } while (blen > 0);
-
+//CIAO
       if (error == 1)
          break;
 
       (void)BIO_flush(bcipher);
       blen = BIO_get_mem_data(bmem, &memptr);
 
-      write(500, memptr, blen);
-      /* TODO: Check JSON */
+      /* TODO: Check JSON in memptr */
    } while (0);
 
    if (bmem)
