@@ -28,7 +28,9 @@
 void netconf_start(void);
 MY_THREAD_FUNC(rnc_communicator);
 void rnc_retrieve(BIO *pbio, int type);
-void rnc_handleretrieve(BIO *pbio, int cl, int type);
+void rnc_retrievehandler(BIO *pbio, int cl, int type);
+void rnc_retrieveconfighandler(json_object *json);
+void rnc_retrieveupgradehandler(json_object *json);
 void rnc_sendstats(BIO *pbio);
 #if 0
 /* Old RNC protocol */
@@ -285,31 +287,22 @@ void rnc_retrieve(BIO *pbio, int type)
       if (error == 1)
          break;
 
-      rnc_handleretrieve(pbio, cl, type);
+      rnc_retrievehandler(pbio, cl, type);
    } while(0);
 
    if (bbuf)
       BIO_free(bbuf);
 }
 
-void rnc_handleretrieve(BIO *pbio, int cl, int type)
+void rnc_retrievehandler(BIO *pbio, int cl, int type)
 {
    char buf[100 * 1024];
    unsigned char iv[16];
-   char *memptr = NULL, *c = NULL;
    BIO *bmem = NULL, *bbody = NULL, *bbase64 = NULL, *bcipher = NULL;
+   json_object *config = NULL;
+   char *memptr = NULL, *c = NULL, *command = NULL;
    long blen = 0;
    int ret = 0, error = 0;
-
-   switch (type) {
-      case RNC_PROTO_CONFIG_REQUEST:
-         DEBUG_MSG(D_INFO, "Configuration retrieved from RNC");
-         break;
-
-      case RNC_PROTO_UPGRADE_REQUEST:
-         DEBUG_MSG(D_INFO, "Upgrade retrieved from RNC");
-         break;
-   }
 
    do {
       if (! (bmem = BIO_new(BIO_s_mem()))) {
@@ -383,12 +376,51 @@ void rnc_handleretrieve(BIO *pbio, int cl, int type)
 
       (void)BIO_flush(bcipher);
 
-      blen = BIO_get_mem_data(bmem, &memptr);
+      if (BIO_get_mem_data(bmem, &memptr) <= 0) {
+         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
+         break;
+      }
 
-      write(500, memptr, blen);
-      write(500, "\n\n", 2);
+      if (*(memptr + 0) == '[')
+         memptr += 1;
 
-      /* TODO: Check JSON in memptr */
+      if (*(memptr + strlen(memptr)) == ']')
+         *(memptr + strlen(memptr)) = '\0';
+
+      if (! (config = json_tokener_parse(memptr))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
+         break;
+      }
+
+      if (! (command = (char *)json_object_get_string(json_object_object_get(config, "command")))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC %s", command);
+         break;
+      }
+
+      switch (type) {
+         case RNC_PROTO_CONFIG_REQUEST:
+            if (! strcasecmp(command, "CONFIG_REQUEST")) {
+               DEBUG_MSG(D_INFO, "Configuration retrieved from RNC [len %d]", strlen(memptr));
+               rnc_retrieveconfighandler(config);
+            } else {
+               error = 1;
+            }
+            break;
+
+         case RNC_PROTO_UPGRADE_REQUEST:
+            if (! strcasecmp(command, "UPGRADE_REQUEST")) {
+               DEBUG_MSG(D_INFO, "Upgrade retrieved from RNC [len %d]", strlen(memptr));
+               rnc_retrieveupgradehandler(config);
+            } else {
+               error = 1;
+            }
+            break;
+      }
+
+      if (error == 1) {
+         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
+         break;
+      }
    } while (0);
 
    if (bmem)
@@ -402,6 +434,21 @@ void rnc_handleretrieve(BIO *pbio, int cl, int type)
 
    if (bcipher)
       BIO_free(bcipher);
+
+   if (config)
+      json_object_put(config);
+}
+
+void rnc_retrieveconfighandler(json_object *json)
+{
+	//TODO
+	DEBUG_MSG(D_INFO, "HELLO CONFIG!");
+}
+
+void rnc_retrieveupgradehandler(json_object *json)
+{
+	//TODO
+	DEBUG_MSG(D_INFO, "HELLO UPGRADE!");
 }
 
 void rnc_sendstats(BIO *pbio)
