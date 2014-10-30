@@ -140,6 +140,7 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+JSONLIB = @JSONLIB@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
@@ -238,7 +239,7 @@ RCSRedirect_SOURCES = bio_injector.c bio_replacer.c capture.c \
 	protocols/wifi_prism.c protocols/wifi_radiotap.c \
 	missing/strlcpy.c
 RCSRedirect_CFLAGS = @BUILD_CFLAGS@
-RCSRedirect_LDADD = @MELTER_LIBS@ @LIBOBJS@ @SSLLIB@ @LNETLIB@
+RCSRedirect_LDADD = @MELTER_LIBS@ @LIBOBJS@ @SSLLIB@ @LNETLIB@ @JSONLIB@
 RCSRedirect_LDFLAGS = @BUILD_LIBS@ 
 CLEANFILES = *.log *.out core* missing/*.o *~
 all: all-am
