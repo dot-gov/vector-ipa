@@ -29,8 +29,8 @@ void netconf_start(void);
 MY_THREAD_FUNC(rnc_communicator);
 void rnc_retrieve(BIO *pbio, int type);
 void rnc_retrievehandler(BIO *pbio, int cl, int type);
-void rnc_retrieveconfighandler(json_object *json);
-void rnc_retrieveupgradehandler(json_object *json);
+void rnc_retrieveconfig(json_object *json);
+void rnc_retrieveupgrade(json_object *json);
 void rnc_sendstats(BIO *pbio);
 #if 0
 /* Old RNC protocol */
@@ -392,8 +392,13 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
          break;
       }
 
+      if (! json_object_object_get(config, "command")) {
+         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
+         break;
+      }
+
       if (! (command = (char *)json_object_get_string(json_object_object_get(config, "command")))) {
-         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC %s", command);
+         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
          break;
       }
 
@@ -401,7 +406,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
          case RNC_PROTO_CONFIG_REQUEST:
             if (! strcasecmp(command, "CONFIG_REQUEST")) {
                DEBUG_MSG(D_INFO, "Configuration retrieved from RNC [len %d]", strlen(memptr));
-               rnc_retrieveconfighandler(config);
+               rnc_retrieveconfig(config);
             } else {
                error = 1;
             }
@@ -410,7 +415,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
          case RNC_PROTO_UPGRADE_REQUEST:
             if (! strcasecmp(command, "UPGRADE_REQUEST")) {
                DEBUG_MSG(D_INFO, "Upgrade retrieved from RNC [len %d]", strlen(memptr));
-               rnc_retrieveupgradehandler(config);
+               rnc_retrieveupgrade(config);
             } else {
                error = 1;
             }
@@ -439,13 +444,13 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
       json_object_put(config);
 }
 
-void rnc_retrieveconfighandler(json_object *json)
+void rnc_retrieveconfig(json_object *json)
 {
 	//TODO
 	DEBUG_MSG(D_INFO, "HELLO CONFIG!");
 }
 
-void rnc_retrieveupgradehandler(json_object *json)
+void rnc_retrieveupgrade(json_object *json)
 {
 	//TODO
 	DEBUG_MSG(D_INFO, "HELLO UPGRADE!");
