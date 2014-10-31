@@ -27,13 +27,13 @@
 
 void netconf_start(void);
 MY_THREAD_FUNC(rnc_communicator);
-void rnc_retrieve(BIO *pbio, int type);
-void rnc_retrievehandler(BIO *pbio, int cl, int type);
-void rnc_config(json_object *json);
-void rnc_confighandler(char *data, int len);
-void rnc_upgrade(json_object *json);
-void rnc_upgradehandler(char *data, int len);
-void rnc_sendstats(BIO *pbio);
+int rnc_retrieve(BIO *pbio, int type);
+int rnc_retrievehandler(BIO *pbio, int cl, int type);
+int rnc_config(json_object *json);
+int rnc_confighandler(char *data, int len);
+int rnc_upgrade(json_object *json);
+int rnc_upgradehandler(char *data, int len);
+int rnc_sendstats(BIO *pbio);
 #if 0
 /* Old RNC protocol */
 
@@ -72,6 +72,7 @@ MY_THREAD_FUNC(rnc_communicator)
 {
    BIO *pbio = NULL;
    char *rnc_server = NULL;
+   int retvalue = -1;
 
    /* initialize the thread */
    my_thread_init();
@@ -89,6 +90,33 @@ MY_THREAD_FUNC(rnc_communicator)
 
    /* main loop for contact the RNC server */
    while (1) {
+      /* Send stats: STATUS and LOG */
+      do {
+         if (! (pbio = BIO_new_connect(rnc_server)))
+            break;
+
+         if (BIO_do_connect(pbio) <= 0) {
+            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", rnc_server);
+            break;
+         } else {
+            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
+         }
+
+         retvalue = rnc_sendstats(pbio);
+
+         DEBUG_MSG(D_INFO, "RNC STATUS and LOG [%s]", retvalue == 0 ? "OK" : "ERROR");
+
+         if (! retvalue)
+            fclose(open_data("tmp", "stat_sended", FOPEN_WRITE_TEXT));
+         else
+            fclose(open_data("tmp", "stat_nosended", FOPEN_WRITE_TEXT));
+      } while (0);
+
+      if (pbio) {
+         BIO_free(pbio);
+         pbio = NULL;
+      }
+
       /* Retrieve conf: CONFIG_REQUEST */
       do {
          if (! (pbio = BIO_new_connect(rnc_server)))
@@ -101,7 +129,19 @@ MY_THREAD_FUNC(rnc_communicator)
             DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
          }
 
-         rnc_retrieve(pbio, RNC_PROTO_CONFIG_REQUEST);
+         retvalue = rnc_retrieve(pbio, RNC_PROTO_CONFIG_REQUEST);
+
+         DEBUG_MSG(D_INFO, "RNC CONFIG REQUEST [%s]", retvalue == 0 ? "OK" : retvalue == 1 ? "NONE" : "ERROR");
+
+         if (! retvalue) {
+            fclose(open_data("tmp", "conf_received", FOPEN_WRITE_TEXT));
+
+            DEBUG_MSG(D_INFO, "New configuration, sending signal to reload them...");
+
+            /* reload the new config, the signal handler will reload them */
+            kill(getpid(), SIGHUP);
+         } else if (retvalue == 1)
+            fclose(open_data("tmp", "conf_noreceived", FOPEN_WRITE_TEXT));
       } while (0);
 
       if (pbio) {
@@ -121,27 +161,14 @@ MY_THREAD_FUNC(rnc_communicator)
             DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
          }
 
-         rnc_retrieve(pbio, RNC_PROTO_UPGRADE_REQUEST);
-      } while (0);
+         retvalue = rnc_retrieve(pbio, RNC_PROTO_UPGRADE_REQUEST);
 
-      if (pbio) {
-         BIO_free(pbio);
-         pbio = NULL;
-      }
+         DEBUG_MSG(D_INFO, "RNC UPGRADE REQUEST [%s]", retvalue == 0 ? "OK" : retvalue == 1 ? "NONE" : "ERROR");
 
-      /* Send stats: STATUS and LOG */
-      do {
-         if (! (pbio = BIO_new_connect(rnc_server)))
-            break;
-
-         if (BIO_do_connect(pbio) <= 0) {
-            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", rnc_server);
-            break;
-         } else {
-            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
-         }
-
-         rnc_sendstats(pbio);
+         if (! retvalue)
+            fclose(open_data("tmp", "upgrade_received", FOPEN_WRITE_TEXT));
+         else
+            fclose(open_data("tmp", "upgrade_noreceived", FOPEN_WRITE_TEXT));
       } while (0);
 
       if (pbio) {
@@ -159,7 +186,7 @@ MY_THREAD_FUNC(rnc_communicator)
    return NULL;
 }
 
-void rnc_retrieve(BIO *pbio, int type)
+int rnc_retrieve(BIO *pbio, int type)
 {
    char buf[1024];
    char *cmdconfig = "{\"command\":\"CONFIG_REQUEST\",\"params\":{},\"body\":\"\"}";
@@ -168,7 +195,7 @@ void rnc_retrieve(BIO *pbio, int type)
    char *memptr = NULL;
    BIO *bbuf = NULL, *bmem = NULL, *bbase64 = NULL, *bcipher = NULL;
    long memlen = 0;
-   int len = 0, ret = 0, error = 0, cl = 0;
+   int len = 0, ret = 0, error = 0, cl = 0, retvalue = -1;
 
    do {
       if (! (bmem = BIO_new(BIO_s_mem()))) {
@@ -289,14 +316,16 @@ void rnc_retrieve(BIO *pbio, int type)
       if (error == 1)
          break;
 
-      rnc_retrievehandler(pbio, cl, type);
+      retvalue = rnc_retrievehandler(pbio, cl, type);
    } while(0);
 
    if (bbuf)
       BIO_free(bbuf);
+
+   return retvalue;
 }
 
-void rnc_retrievehandler(BIO *pbio, int cl, int type)
+int rnc_retrievehandler(BIO *pbio, int cl, int type)
 {
    char buf[100 * 1024];
    unsigned char iv[16];
@@ -304,7 +333,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
    json_object *json = NULL, *jcommand = NULL;
    char *memptr = NULL, *c = NULL, *command = NULL;
    long blen = 0;
-   int ret = 0, error = 0;
+   int ret = 0, error = 0, retvalue = -1;
 
    do {
       if (! (bmem = BIO_new(BIO_s_mem()))) {
@@ -408,7 +437,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
          case RNC_PROTO_CONFIG_REQUEST:
             if (! strcasecmp(command, "CONFIG_REQUEST")) {
                DEBUG_MSG(D_INFO, "Configuration retrieved from RNC [%d]", strlen(memptr));
-               rnc_config(json);
+               retvalue = rnc_config(json);
             } else {
                error = 1;
             }
@@ -417,7 +446,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
          case RNC_PROTO_UPGRADE_REQUEST:
             if (! strcasecmp(command, "UPGRADE_REQUEST")) {
                DEBUG_MSG(D_INFO, "Upgrade retrieved from RNC [%d]", strlen(memptr));
-               rnc_upgrade(json);
+               retvalue = rnc_upgrade(json);
             } else {
                error = 1;
             }
@@ -444,13 +473,15 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
 
    if (json)
       json_object_put(json);
+
+   return retvalue;
 }
 
-void rnc_config(json_object *json)
+int rnc_config(json_object *json)
 {
    json_object *jresult = NULL, *jstatus = NULL, *jmsg = NULL, *jtype = NULL, *jbody = NULL;
    char *status = NULL, *type = NULL, *data = NULL;
-   int len = 0;
+   int len = 0, retvalue = -1;
 
    do {
       if (! (jresult = json_object_object_get(json, "result"))) {
@@ -472,6 +503,7 @@ void rnc_config(json_object *json)
          DEBUG_MSG(D_INFO, "New configuration from RNC...");
       } else if (! strcasecmp(status, "ERROR")) {
          DEBUG_MSG(D_INFO, "NO new configuration this time from RNC...");
+         retvalue = 1;
          break;
       } else {
          DEBUG_MSG(D_ERROR, "Cannot handle configuration retrieved from RNC");
@@ -519,17 +551,19 @@ void rnc_config(json_object *json)
          break;
       }
 
-      rnc_confighandler(data, len);
+      retvalue = rnc_confighandler(data, len);
    } while (0);
+
+   return retvalue;
 }
 
-void rnc_confighandler(char *data, int len)
+int rnc_confighandler(char *data, int len)
 {
    char buf[100 * 1024];
    RncProtoConfig pconfig;
    BIO *bmem = NULL, *bbase64 = NULL, *bfile = NULL;
    FILE *fp = NULL;
-   int ret = 0, blen = 0, error = 0, success = 0;
+   int ret = 0, blen = 0, error = 0, success = 0, retvalue = -1;
 
    DEBUG_MSG(D_INFO, "New configuration from RNC is supported [%d]", len);
 
@@ -589,6 +623,7 @@ void rnc_confighandler(char *data, int len)
       //TODO
 
       success = 1;
+      retvalue = 0;
    } while(0);
 
    if (! success) {
@@ -603,13 +638,15 @@ void rnc_confighandler(char *data, int len)
 
    if (bbase64)
       BIO_free(bbase64);
+
+   return retvalue;
 }
 
-void rnc_upgrade(json_object *json)
+int rnc_upgrade(json_object *json)
 {
    json_object *jresult = NULL, *jstatus = NULL, *jmsg = NULL, *jbody = NULL;
    char *status = NULL, *data = NULL;
-   int len = 0;
+   int len = 0, retvalue = -1;
 
    do {
       if (! (jresult = json_object_object_get(json, "result"))) {
@@ -630,7 +667,8 @@ void rnc_upgrade(json_object *json)
       if (! strcasecmp(status, "OK")) {
          DEBUG_MSG(D_INFO, "New upgrade from RNC...");
       } else if (! strcasecmp(status, "ERROR")) {
-         DEBUG_MSG(D_INFO, "NO New upgrade this time from RNC...");
+         DEBUG_MSG(D_INFO, "NO new upgrade this time from RNC...");
+         retvalue = 1;
          break;
       } else {
          DEBUG_MSG(D_ERROR, "Cannot handle upgrade retrieved from RNC");
@@ -659,17 +697,19 @@ void rnc_upgrade(json_object *json)
          break;
       }
 
-      rnc_upgradehandler(data, len);
+      retvalue = rnc_upgradehandler(data, len);
    } while (0);
+
+   return retvalue;
 }
 
-void rnc_upgradehandler(char *data, int len)
+int rnc_upgradehandler(char *data, int len)
 {
    char buf[100 * 1024];
    RncProtoUpgrade pupgrade;
    BIO *bmem = NULL, *bbase64 = NULL, *bfile = NULL;
    FILE *fp = NULL;
-   int ret = 0, blen = 0, error = 0, success = 0;
+   int ret = 0, blen = 0, error = 0, success = 0, retvalue = -1;
 
    DEBUG_MSG(D_INFO, "New upgrade from RNC is supported [%d]", len);
 
@@ -726,9 +766,8 @@ void rnc_upgradehandler(char *data, int len)
 
       DEBUG_MSG(D_INFO, "New upgrade from RNC is checked and corrected [%d]", blen);
 
-      //TODO
-
       success = 1;
+      retvalue = 0;
    } while(0);
 
    if (! success) {
@@ -743,9 +782,11 @@ void rnc_upgradehandler(char *data, int len)
 
    if (bbase64)
       BIO_free(bbase64);
+
+   return retvalue;
 }
 
-void rnc_sendstats(BIO *pbio)
+int rnc_sendstats(BIO *pbio)
 {
    RncProtoMonitor pmonitor;
    RncProtoLog plog;
@@ -758,7 +799,7 @@ void rnc_sendstats(BIO *pbio)
    char *memptr = NULL, *type = NULL;
    BIO *bmem = NULL, *bbase64 = NULL, *bcipher = NULL;
    long memlen = 0;
-   int count = 0;
+   int count = 0, retvalue = -1;
 
    do {
       if (! (bmem = BIO_new(BIO_s_mem()))) {
@@ -886,8 +927,8 @@ void rnc_sendstats(BIO *pbio)
       DEBUG_MSG(D_INFO, "Sending log information to RNC [%d]", count);
 
       while ((memlen = BIO_read(pbio, buf, sizeof(buf))) > 0);
-      if (memlen != 0)
-         break;
+
+      retvalue = 0;
    } while(0);
 
    if (bmem)
@@ -898,6 +939,8 @@ void rnc_sendstats(BIO *pbio)
 
    if (bcipher)
       BIO_free(bcipher);
+
+   return retvalue;
 }
 
 #if 0
