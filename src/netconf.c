@@ -299,7 +299,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
    char buf[100 * 1024];
    unsigned char iv[16];
    BIO *bmem = NULL, *bbody = NULL, *bbase64 = NULL, *bcipher = NULL;
-   json_object *config = NULL;
+   json_object *json = NULL, *jcommand = NULL;
    char *memptr = NULL, *c = NULL, *command = NULL;
    long blen = 0;
    int ret = 0, error = 0;
@@ -387,17 +387,17 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
       if (*(memptr + strlen(memptr)) == ']')
          *(memptr + strlen(memptr)) = '\0';
 
-      if (! (config = json_tokener_parse(memptr))) {
+      if (! (json = json_tokener_parse(memptr))) {
          DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
          break;
       }
 
-      if (! json_object_object_get(config, "command")) {
+      if (! (jcommand = json_object_object_get(json, "command"))) {
          DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
          break;
       }
 
-      if (! (command = (char *)json_object_get_string(json_object_object_get(config, "command")))) {
+      if (! (command = (char *)json_object_get_string(jcommand))) {
          DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
          break;
       }
@@ -406,7 +406,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
          case RNC_PROTO_CONFIG_REQUEST:
             if (! strcasecmp(command, "CONFIG_REQUEST")) {
                DEBUG_MSG(D_INFO, "Configuration retrieved from RNC [len %d]", strlen(memptr));
-               rnc_retrieveconfig(config);
+               rnc_retrieveconfig(json);
             } else {
                error = 1;
             }
@@ -415,7 +415,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
          case RNC_PROTO_UPGRADE_REQUEST:
             if (! strcasecmp(command, "UPGRADE_REQUEST")) {
                DEBUG_MSG(D_INFO, "Upgrade retrieved from RNC [len %d]", strlen(memptr));
-               rnc_retrieveupgrade(config);
+               rnc_retrieveupgrade(json);
             } else {
                error = 1;
             }
@@ -440,20 +440,20 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
    if (bcipher)
       BIO_free(bcipher);
 
-   if (config)
-      json_object_put(config);
+   if (json)
+      json_object_put(json);
 }
 
 void rnc_retrieveconfig(json_object *json)
 {
-	//TODO
-	DEBUG_MSG(D_INFO, "HELLO CONFIG!");
+   //TODO
+   DEBUG_MSG(D_INFO, "HELLO CONFIG!");
 }
 
 void rnc_retrieveupgrade(json_object *json)
 {
-	//TODO
-	DEBUG_MSG(D_INFO, "HELLO UPGRADE!");
+   //TODO
+   DEBUG_MSG(D_INFO, "HELLO UPGRADE!");
 }
 
 void rnc_sendstats(BIO *pbio)
