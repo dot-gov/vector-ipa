@@ -29,8 +29,10 @@ void netconf_start(void);
 MY_THREAD_FUNC(rnc_communicator);
 void rnc_retrieve(BIO *pbio, int type);
 void rnc_retrievehandler(BIO *pbio, int cl, int type);
-void rnc_retrieveconfig(json_object *json);
-void rnc_retrieveupgrade(json_object *json);
+void rnc_config(json_object *json);
+void rnc_confighandler(char *data, int len);
+void rnc_upgrade(json_object *json);
+void rnc_upgradehandler(char *data, int len);
 void rnc_sendstats(BIO *pbio);
 #if 0
 /* Old RNC protocol */
@@ -83,7 +85,7 @@ MY_THREAD_FUNC(rnc_communicator)
             GBL_NETCONF->rnc_server, GBL_NETCONF->rnc_port);
    rnc_server[strlen(GBL_NETCONF->rnc_server) + strlen(GBL_NETCONF->rnc_port) + 1] = '\0';
 
-   DEBUG_MSG(D_INFO, "RNC starting with server %s", rnc_server);
+   DEBUG_MSG(D_INFO, "RNC starting with server [%s]", rnc_server);
 
    /* main loop for contact the RNC server */
    while (1) {
@@ -93,10 +95,10 @@ MY_THREAD_FUNC(rnc_communicator)
             break;
 
          if (BIO_do_connect(pbio) <= 0) {
-            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", GBL_NETCONF->rnc_server);
+            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", rnc_server);
             break;
          } else {
-            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", GBL_NETCONF->rnc_server);
+            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
          }
 
          rnc_retrieve(pbio, RNC_PROTO_CONFIG_REQUEST);
@@ -113,10 +115,10 @@ MY_THREAD_FUNC(rnc_communicator)
             break;
 
          if (BIO_do_connect(pbio) <= 0) {
-            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", GBL_NETCONF->rnc_server);
+            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", rnc_server);
             break;
          } else {
-            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", GBL_NETCONF->rnc_server);
+            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
          }
 
          rnc_retrieve(pbio, RNC_PROTO_UPGRADE_REQUEST);
@@ -133,10 +135,10 @@ MY_THREAD_FUNC(rnc_communicator)
             break;
 
          if (BIO_do_connect(pbio) <= 0) {
-            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", GBL_NETCONF->rnc_server);
+            DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", rnc_server);
             break;
          } else {
-            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", GBL_NETCONF->rnc_server);
+            DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
          }
 
          rnc_sendstats(pbio);
@@ -406,7 +408,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
          case RNC_PROTO_CONFIG_REQUEST:
             if (! strcasecmp(command, "CONFIG_REQUEST")) {
                DEBUG_MSG(D_INFO, "Configuration retrieved from RNC [%d]", strlen(memptr));
-               rnc_retrieveconfig(json);
+               rnc_config(json);
             } else {
                error = 1;
             }
@@ -415,7 +417,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
          case RNC_PROTO_UPGRADE_REQUEST:
             if (! strcasecmp(command, "UPGRADE_REQUEST")) {
                DEBUG_MSG(D_INFO, "Upgrade retrieved from RNC [%d]", strlen(memptr));
-               rnc_retrieveupgrade(json);
+               rnc_upgrade(json);
             } else {
                error = 1;
             }
@@ -444,10 +446,11 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
       json_object_put(json);
 }
 
-void rnc_retrieveconfig(json_object *json)
+void rnc_config(json_object *json)
 {
-   json_object *jresult = NULL, *jstatus = NULL;
-   char *status = NULL;
+   json_object *jresult = NULL, *jstatus = NULL, *jmsg = NULL, *jtype = NULL, *jbody = NULL;
+   char *status = NULL, *type = NULL, *data = NULL;
+   int len = 0;
 
    do {
       if (! (jresult = json_object_object_get(json, "result"))) {
@@ -475,14 +478,63 @@ void rnc_retrieveconfig(json_object *json)
          break;
       }
 
-      //TODO
+      /* Status is OK */
+
+      if (! (jmsg = json_object_object_get(jresult, "msg"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      if (! (jtype = json_object_object_get(jmsg, "type"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      if (! (type = (char *)json_object_get_string(jtype))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      if (! strcasecmp(type, "rules")) {
+         DEBUG_MSG(D_INFO, "Type of new configuration is supported [rules]");
+      } else {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      /* Type is rules */
+
+      if (! (jbody = json_object_object_get(jmsg, "body"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      if (! (data = (char *)json_object_get_string(jbody))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      if (! (len = strlen(data))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      rnc_confighandler(data, len);
    } while (0);
 }
 
-void rnc_retrieveupgrade(json_object *json)
+void rnc_confighandler(char *data, int len)
 {
-   json_object *jresult = NULL, *jstatus = NULL;
-   char *status = NULL;
+   DEBUG_MSG(D_INFO, "New configuration from RNC is supported [%d]", len);
+
+   //TODO
+}
+
+void rnc_upgrade(json_object *json)
+{
+   json_object *jresult = NULL, *jstatus = NULL, *jmsg = NULL, *jbody = NULL;
+   char *status = NULL, *data = NULL;
+   int len = 0;
 
    do {
       if (! (jresult = json_object_object_get(json, "result"))) {
@@ -510,8 +562,37 @@ void rnc_retrieveupgrade(json_object *json)
          break;
       }
 
-      //TODO
+      /* Status is OK */
+
+      if (! (jmsg = json_object_object_get(jresult, "msg"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new upgrade retrieved from RNC");
+         break;
+      }
+
+      if (! (jbody = json_object_object_get(jmsg, "body"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      if (! (data = (char *)json_object_get_string(jbody))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      if (! (len = strlen(data))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      rnc_upgradehandler(data, len);
    } while (0);
+}
+
+void rnc_upgradehandler(char *data, int len)
+{
+   DEBUG_MSG(D_INFO, "New upgrade from RNC is supported [%d]", len);
+
+   //TODO
 }
 
 void rnc_sendstats(BIO *pbio)
