@@ -167,7 +167,7 @@ MY_THREAD_FUNC(rnc_communicator)
 
          if (! retvalue)
             fclose(open_data("tmp", "upgrade_received", FOPEN_WRITE_TEXT));
-         else
+         else if (retvalue == 1)
             fclose(open_data("tmp", "upgrade_noreceived", FOPEN_WRITE_TEXT));
       } while (0);
 
