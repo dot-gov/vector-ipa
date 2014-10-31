@@ -32,18 +32,30 @@ typedef struct _RncProtoMonitor {
    char desc[1024];
 } RncProtoMonitor;
 
+typedef struct _RncProtoConfig {
+   char *filename;
+
 #if 0
 /* Old RNC protocol */
 
-typedef struct _RncProtoConfig {
    char filename[MAX_PATH];
    u_int size;
+#endif
 } RncProtoConfig;
 
 typedef struct _RncProtoUpgrade {
+   char *filename;
+
+#if 0
+/* Old RNC protocol */
+
    char filename[MAX_PATH];
    u_int size;
+#endif
 } RncProtoUpgrade;
+
+#if 0
+/* Old RNC protocol */
 
 typedef struct _RncProtoCert {
    u_int size;

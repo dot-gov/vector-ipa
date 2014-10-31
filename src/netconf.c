@@ -525,9 +525,84 @@ void rnc_config(json_object *json)
 
 void rnc_confighandler(char *data, int len)
 {
+   char buf[100 * 1024];
+   RncProtoConfig pconfig;
+   BIO *bmem = NULL, *bbase64 = NULL, *bfile = NULL;
+   FILE *fp = NULL;
+   int ret = 0, blen = 0, error = 0, success = 0;
+
    DEBUG_MSG(D_INFO, "New configuration from RNC is supported [%d]", len);
 
-   //TODO
+   pconfig.filename = "/opt/td-config/share/NetworkInjectorConfig.zip";
+
+   do {
+      if (! (bmem = BIO_new_mem_buf(data, len))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      if (! (bbase64 = BIO_new(BIO_f_base64()))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      BIO_set_flags(bbase64, BIO_FLAGS_BASE64_NO_NL);
+      BIO_push(bbase64, bmem);
+
+      if ((fp = fopen(pconfig.filename, "r")) != NULL) {
+         fclose(fp);
+
+         DEBUG_MSG(D_INFO, "Delete old configuration...");
+
+         if (remove(pconfig.filename) == -1) {
+            DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+            break;
+         } 
+      }
+
+      if (! (bfile = BIO_new_file(pconfig.filename, "w"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      do {
+         ret = BIO_read(bbase64, buf, sizeof(buf));
+
+         if (ret > 0) {
+            blen += ret;
+
+            if (BIO_write(bfile, buf, ret) != ret) {
+               error = 1;
+               DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+               break;
+            }
+         }
+      } while (ret > 0);
+
+      BIO_free(bfile);
+
+      if (error == 1)
+         break;
+
+      DEBUG_MSG(D_INFO, "New configuration from RNC is checked and corrected [%d]", blen);
+
+      //TODO
+
+      success = 1;
+   } while(0);
+
+   if (! success) {
+      if ((fp = fopen(pconfig.filename, "r")) != NULL) {
+         fclose(fp);
+         remove(pconfig.filename);
+      }
+   }
+
+   if (bmem)
+      BIO_free(bmem);
+
+   if (bbase64)
+      BIO_free(bbase64);
 }
 
 void rnc_upgrade(json_object *json)
@@ -590,9 +665,84 @@ void rnc_upgrade(json_object *json)
 
 void rnc_upgradehandler(char *data, int len)
 {
+   char buf[100 * 1024];
+   RncProtoUpgrade pupgrade;
+   BIO *bmem = NULL, *bbase64 = NULL, *bfile = NULL;
+   FILE *fp = NULL;
+   int ret = 0, blen = 0, error = 0, success = 0;
+
    DEBUG_MSG(D_INFO, "New upgrade from RNC is supported [%d]", len);
 
-   //TODO
+   pupgrade.filename = "/opt/td-config/share/NetworkInjectorUpgrade.deb";
+
+   do {
+      if (! (bmem = BIO_new_mem_buf(data, len))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new upgrade retrieved from RNC");
+         break;
+      }
+
+      if (! (bbase64 = BIO_new(BIO_f_base64()))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new upgrade retrieved from RNC");
+         break;
+      }
+
+      BIO_set_flags(bbase64, BIO_FLAGS_BASE64_NO_NL);
+      BIO_push(bbase64, bmem);
+
+      if ((fp = fopen(pupgrade.filename, "r")) != NULL) {
+         fclose(fp);
+
+         DEBUG_MSG(D_INFO, "Delete old upgrade...");
+
+         if (remove(pupgrade.filename) == -1) {
+            DEBUG_MSG(D_ERROR, "Cannot handle new upgrade retrieved from RNC");
+            break;
+         }
+      }
+
+      if (! (bfile = BIO_new_file(pupgrade.filename, "w"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new upgrade retrieved from RNC");
+         break;
+      }
+
+      do {
+         ret = BIO_read(bbase64, buf, sizeof(buf));
+
+         if (ret > 0) {
+            blen += ret;
+
+            if (BIO_write(bfile, buf, ret) != ret) {
+               error = 1;
+               DEBUG_MSG(D_ERROR, "Cannot handle new upgrade retrieved from RNC");
+               break;
+            }
+         }
+      } while (ret > 0);
+
+      BIO_free(bfile);
+
+      if (error == 1)
+         break;
+
+      DEBUG_MSG(D_INFO, "New upgrade from RNC is checked and corrected [%d]", blen);
+
+      //TODO
+
+      success = 1;
+   } while(0);
+
+   if (! success) {
+      if ((fp = fopen(pupgrade.filename, "r")) != NULL) {
+         fclose(fp);
+         remove(pupgrade.filename);
+      }
+   }
+
+   if (bmem)
+      BIO_free(bmem);
+
+   if (bbase64)
+      BIO_free(bbase64);
 }
 
 void rnc_sendstats(BIO *pbio)
