@@ -306,17 +306,17 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
 
    do {
       if (! (bmem = BIO_new(BIO_s_mem()))) {
-         DEBUG_MSG(D_ERROR, "Cannot handle the retrieved from RNC");
+         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
          break;
       }
 
       if (! (bbody = BIO_new(BIO_s_mem()))) {
-         DEBUG_MSG(D_ERROR, "Cannot handle the retrieved from RNC");
+         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
          break;
       }
 
       if (! (bbase64 = BIO_new(BIO_f_base64()))) {
-         DEBUG_MSG(D_ERROR, "Cannot handle the retrieved from RNC");
+         DEBUG_MSG(D_ERROR, "Cannot handle retrieved from RNC");
          break;
       }
 
@@ -405,7 +405,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
       switch (type) {
          case RNC_PROTO_CONFIG_REQUEST:
             if (! strcasecmp(command, "CONFIG_REQUEST")) {
-               DEBUG_MSG(D_INFO, "Configuration retrieved from RNC [len %d]", strlen(memptr));
+               DEBUG_MSG(D_INFO, "Configuration retrieved from RNC [%d]", strlen(memptr));
                rnc_retrieveconfig(json);
             } else {
                error = 1;
@@ -414,7 +414,7 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
 
          case RNC_PROTO_UPGRADE_REQUEST:
             if (! strcasecmp(command, "UPGRADE_REQUEST")) {
-               DEBUG_MSG(D_INFO, "Upgrade retrieved from RNC [len %d]", strlen(memptr));
+               DEBUG_MSG(D_INFO, "Upgrade retrieved from RNC [%d]", strlen(memptr));
                rnc_retrieveupgrade(json);
             } else {
                error = 1;
@@ -446,14 +446,72 @@ void rnc_retrievehandler(BIO *pbio, int cl, int type)
 
 void rnc_retrieveconfig(json_object *json)
 {
-   //TODO
-   DEBUG_MSG(D_INFO, "HELLO CONFIG!");
+   json_object *jresult = NULL, *jstatus = NULL;
+   char *status = NULL;
+
+   do {
+      if (! (jresult = json_object_object_get(json, "result"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle configuration retrieved from RNC");
+         break;
+      }
+
+      if (! (jstatus = json_object_object_get(jresult, "status"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle configuration retrieved from RNC");
+         break;
+      }
+
+      if (! (status = (char *)json_object_get_string(jstatus))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle configuration retrieved from RNC");
+         break;
+      }
+
+      if (! strcasecmp(status, "OK")) {
+         DEBUG_MSG(D_INFO, "New configuration from RNC...");
+      } else if (! strcasecmp(status, "ERROR")) {
+         DEBUG_MSG(D_INFO, "NO new configuration this time from RNC...");
+         break;
+      } else {
+         DEBUG_MSG(D_ERROR, "Cannot handle configuration retrieved from RNC");
+         break;
+      }
+
+      //TODO
+   } while (0);
 }
 
 void rnc_retrieveupgrade(json_object *json)
 {
-   //TODO
-   DEBUG_MSG(D_INFO, "HELLO UPGRADE!");
+   json_object *jresult = NULL, *jstatus = NULL;
+   char *status = NULL;
+
+   do {
+      if (! (jresult = json_object_object_get(json, "result"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle upgrade retrieved from RNC");
+         break;
+      }
+
+      if (! (jstatus = json_object_object_get(jresult, "status"))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle upgrade retrieved from RNC");
+         break;
+      }
+
+      if (! (status = (char *)json_object_get_string(jstatus))) {
+         DEBUG_MSG(D_ERROR, "Cannot handle upgrade retrieved from RNC");
+         break;
+      }
+
+      if (! strcasecmp(status, "OK")) {
+         DEBUG_MSG(D_INFO, "New upgrade from RNC...");
+      } else if (! strcasecmp(status, "ERROR")) {
+         DEBUG_MSG(D_INFO, "NO New upgrade this time from RNC...");
+         break;
+      } else {
+         DEBUG_MSG(D_ERROR, "Cannot handle upgrade retrieved from RNC");
+         break;
+      }
+
+      //TODO
+   } while (0);
 }
 
 void rnc_sendstats(BIO *pbio)
