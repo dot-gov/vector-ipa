@@ -731,8 +731,6 @@ int rnc_confighandler(char *data, int len)
       else
          DEBUG_MSG(D_INFO, "NO melting of new configuration files this time for inject html flash");
 
-      //TODO
-
       success = 1;
       retvalue = 0;
    } while(0);
