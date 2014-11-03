@@ -563,13 +563,19 @@ int rnc_confighandler(char *data, int len)
    RncProtoConfig pconfig;
    BIO *bmem = NULL, *bbase64 = NULL, *bfile = NULL;
    FILE *fp = NULL;
+   char *path = NULL;
    int ret = 0, blen = 0, error = 0, success = 0, retvalue = -1;
 
    DEBUG_MSG(D_INFO, "New configuration from RNC is supported [%d]", len);
 
-   pconfig.filename = "/opt/td-config/share/NetworkInjectorConfig.zip";
+   pconfig.filename = "NetworkInjectorConfig.zip";
 
    do {
+      if ((path = get_path("etc", pconfig.filename)) == NULL) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
       if (! (bmem = BIO_new_mem_buf(data, len))) {
          DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
          break;
@@ -583,18 +589,18 @@ int rnc_confighandler(char *data, int len)
       BIO_set_flags(bbase64, BIO_FLAGS_BASE64_NO_NL);
       BIO_push(bbase64, bmem);
 
-      if ((fp = fopen(pconfig.filename, "r")) != NULL) {
+      if ((fp = fopen(path, "r")) != NULL) {
          fclose(fp);
 
          DEBUG_MSG(D_INFO, "Delete old configuration...");
 
-         if (remove(pconfig.filename) == -1) {
+         if (remove(path) == -1) {
             DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
             break;
          } 
       }
 
-      if (! (bfile = BIO_new_file(pconfig.filename, "w"))) {
+      if (! (bfile = BIO_new_file(path, "w"))) {
          DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
          break;
       }
@@ -627,11 +633,14 @@ int rnc_confighandler(char *data, int len)
    } while(0);
 
    if (! success) {
-      if ((fp = fopen(pconfig.filename, "r")) != NULL) {
+      if ((fp = fopen(path, "r")) != NULL) {
          fclose(fp);
-         remove(pconfig.filename);
+         remove(path);
       }
    }
+
+   if (path)
+      SAFE_FREE(path);
 
    if (bmem)
       BIO_free(bmem);
@@ -709,13 +718,19 @@ int rnc_upgradehandler(char *data, int len)
    RncProtoUpgrade pupgrade;
    BIO *bmem = NULL, *bbase64 = NULL, *bfile = NULL;
    FILE *fp = NULL;
+   char *path = NULL;
    int ret = 0, blen = 0, error = 0, success = 0, retvalue = -1;
 
    DEBUG_MSG(D_INFO, "New upgrade from RNC is supported [%d]", len);
 
-   pupgrade.filename = "/opt/td-config/share/NetworkInjectorUpgrade.deb";
+   pupgrade.filename = "NetworkInjectorUpgrade.deb";
 
    do {
+      if ((path = get_path("etc", pupgrade.filename)) == NULL) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
       if (! (bmem = BIO_new_mem_buf(data, len))) {
          DEBUG_MSG(D_ERROR, "Cannot handle new upgrade retrieved from RNC");
          break;
@@ -729,18 +744,18 @@ int rnc_upgradehandler(char *data, int len)
       BIO_set_flags(bbase64, BIO_FLAGS_BASE64_NO_NL);
       BIO_push(bbase64, bmem);
 
-      if ((fp = fopen(pupgrade.filename, "r")) != NULL) {
+      if ((fp = fopen(path, "r")) != NULL) {
          fclose(fp);
 
          DEBUG_MSG(D_INFO, "Delete old upgrade...");
 
-         if (remove(pupgrade.filename) == -1) {
+         if (remove(path) == -1) {
             DEBUG_MSG(D_ERROR, "Cannot handle new upgrade retrieved from RNC");
             break;
          }
       }
 
-      if (! (bfile = BIO_new_file(pupgrade.filename, "w"))) {
+      if (! (bfile = BIO_new_file(path, "w"))) {
          DEBUG_MSG(D_ERROR, "Cannot handle new upgrade retrieved from RNC");
          break;
       }
@@ -771,11 +786,14 @@ int rnc_upgradehandler(char *data, int len)
    } while(0);
 
    if (! success) {
-      if ((fp = fopen(pupgrade.filename, "r")) != NULL) {
+      if ((fp = fopen(path, "r")) != NULL) {
          fclose(fp);
-         remove(pupgrade.filename);
+         remove(path);
       }
    }
+
+   if (path)
+      SAFE_FREE(path);
 
    if (bmem)
       BIO_free(bmem);
