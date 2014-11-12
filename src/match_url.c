@@ -325,7 +325,11 @@ void match_url(struct packet_object *po)
           return;
       }
 
-      if (strstr(url, "youtube") != NULL) {
+      if (strstr(url, "www.youtube.com/watch") != NULL || 
+          strstr(url, "www.veoh.com/watch") != NULL || 
+          strstr(url, "www.metacafe.com/watch") != NULL || 
+          strstr(url, "www.dailymotion.com/video") != NULL || 
+          strstr(url, "www.youporn.com/watch") != NULL) {
 	 osuser os;
 
          os = search_useragent_os((char *) po->DATA.data);
