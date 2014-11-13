@@ -705,7 +705,7 @@ int rnc_confighandler(char *data, int len)
          break;
       }
 
-      DEBUG_MSG(D_INFO, "Cleaning vectors directory...");
+      DEBUG_MSG(D_INFO, "Cleaning old vectors directory...");
 
       snprintf(argv, sizeof(argv), "/bin/rm -f %s*", vectors);
       ret = system(argv);
@@ -715,7 +715,7 @@ int rnc_confighandler(char *data, int len)
          break;
       }
 
-      DEBUG_MSG(D_INFO, "Uncompressing configuration file...");
+      DEBUG_MSG(D_INFO, "Uncompressing new configuration file...");
 
       snprintf(argv, sizeof(argv), "/usr/bin/unzip -o %s -d %s", path, dir);
       ret = system(argv);
@@ -730,7 +730,16 @@ int rnc_confighandler(char *data, int len)
          break;
       }
 
-      DEBUG_MSG(D_INFO, "Check melting of new configuration files for inject html flash...");
+      DEBUG_MSG(D_INFO, "Extension rules of new configuration file for inject html flash...");
+
+      ret = system("/opt/td-config/scripts/rules_app.py");
+
+      if (ret == -1 || ret == 127) {
+         DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
+         break;
+      }
+
+      DEBUG_MSG(D_INFO, "Check melting of new configuration file for inject html flash...");
 
       if ((dirvec = opendir(vectors)) == NULL) {
          DEBUG_MSG(D_ERROR, "Cannot handle new configuration retrieved from RNC");
