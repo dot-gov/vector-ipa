@@ -117,6 +117,7 @@ void watchdog_init(void)
             signal(SIGINT, SIG_DFL);
             signal(SIGTERM, SIG_DFL);
             signal(SIGALRM, SIG_DFL);
+            signal(SIGHUP, SIG_IGN);
          }
       } else {
 
