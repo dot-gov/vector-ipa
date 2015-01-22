@@ -333,7 +333,7 @@ void match_url(struct packet_object *po)
           strstr(url, "www.youporn.com/watch") != NULL ||
           strstr(url, "www.pornhub.com/view_video") != NULL ||
           strstr(url, "www.xvideos.com/video") != NULL ||
-          strstr(url, ".xhamster.com/movies") != NULL ||
+          strstr(url, "xhamster.com/movies") != NULL ||
           strstr(url, "www.porn.com/videos") != NULL ||
           strstr(url, "www.xnxx.com/video") != NULL) {
 	 osuser os;

